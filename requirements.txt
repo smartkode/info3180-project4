@@ -1,0 +1,44 @@
+# ----------------------
+# Flask
+# ----------------------
+
+Flask
+Flask-Login
+Flask-Migrate
+Flask-OpenID
+Flask-SQLAlchemy
+Flask-Script
+Flask-WTF
+Jinja2
+Mako
+MarkupSafe
+SQLAlchemy
+WTForms
+Werkzeug
+alembic
+argparse
+funcsigs
+gunicorn
+itsdangerous
+mock
+pbr
+psycopg2
+python-editor
+python-openid
+BeautifulSoup4
+requests
+six
+wsgiref
+
+# ----------------------
+# Testing
+# ----------------------
+
+
+
+# ----------------------
+# Production Server
+# ----------------------
+
+
+

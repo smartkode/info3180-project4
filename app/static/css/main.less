@@ -1,0 +1,91 @@
+@import "less/mixins.less";
+
+@pink: #be1a8d;
+
+.custom-highlight{
+    background: @pink;
+    color: #fff;
+    text-shadow: -1px 1px 1px darken(@pink, 15%);
+}
+
+/* Apply custom highlight */
+::-moz-selection{ .custom-highlight; }
+::selection { .custom-highlight; }
+
+
+#main {
+	margin: 5%;
+	padding: 3%;
+	/*background-color: #B5A1A6;*/
+	margin-left: 10%;
+	margin-right: 10%;
+	background-color: #A1B5B0;
+	width: 80%;
+	
+}
+/*
+#left {
+	float: left;
+}
+
+#right {
+	clear: right;
+}
+
+#photo {
+	border: solid 2px blue;
+	width: 196px;
+	height: 148px;	
+}
+
+img {
+	width: 192px;
+	height: 144px;
+}
+
+#right > div {
+	margin-left: 201px;
+	margin-right: 605px;
+	margin-bottom: 5px;
+	padding: 5px;
+	border: solid 2px;
+}
+*/
+/* Message flashing */
+
+
+.flash {
+  background-color: #FBB0B0;
+  padding: 10px;
+  width: 400px;
+}
+/*
+#image {
+	float: right;
+	margin-right: 775px;
+}
+
+#sex {
+	margin-left: 83px;
+}
+
+#age {
+	margin-left: 83px;
+}
+
+#firstname {
+	margin-left: 42px;
+}
+
+#lastname {
+	margin-left: 43px;
+}
+
+#create {
+	margin-left: 111px;
+}
+*/
+
+form {
+	margin-top: 60px;
+}

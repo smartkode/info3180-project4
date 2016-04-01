@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+
+{% block js %}
+{% endblock %}
+
+
+{% block main %}
+{% include "nav.html" %}
+<h1>Edit wish</h1>
+<div class="container">
+	<form role="form" class="form-horizontal" method="POST" enctype="multipart/form-data" action="{{ url_for('edit',list_id=wish.id) }}">
+		{{ form.hidden_tag() }}
+		<div class="form-group">
+			<label class="control-label col-sm-2">Edit Title</label>
+			<div class="col-sm-4">
+				{{ form.title(class_="form-control",value=wish.title) }}
+			</div>
+		</div>
+
+		<div class="form-group">
+			<label class="control-label col-sm-2">Edit Description</label>
+			<div class="col-sm-4">
+				{{ form.description(class_="form-control",value=wish.description) }}
+			</div>
+		</div>
+
+		<div class="form-group">
+			<label class="control-label col-sm-2">Edit URL</label>
+			<div class="col-sm-4">
+				{{ form.url(class_="form-control",value=wish.url) }}
+			</div>
+		</div>
+
+		<div class="form-group">
+			<div class="col-sm-offset-2 col-sm-10">
+				{{ form.add(class_="btn btn-default",value="Save") }}
+			</div>
+		</div>
+	</form>
+</div>
+
+
+{% endblock %}

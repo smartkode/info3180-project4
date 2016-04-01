@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+
+{% block js %}
+{% endblock %}
+
+
+{% block main %}
+{% include "nav.html" %}
+<h1>Wish</h1>
+
+{% for w in wishlist %}
+	<ul>
+		<li>
+			<!-- <form></form> -->
+			<a href="{{ url_for('wishlist',list_id=w.id) }}">{{ w.title }}</a>
+		</li>
+	</ul>
+{% endfor %}
+
+{% endblock %}
