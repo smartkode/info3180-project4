@@ -23,6 +23,7 @@ from flask import Flask, abort, make_response
 import requests
 from bs4 import BeautifulSoup
 import urlparse
+import urllib2
 
 ###
 # Routing for your application.
@@ -37,39 +38,36 @@ def load_user(id):
     return Users.query.get(int(id))
 
 #---Creates new users
-@app.route('/api/user/register ', methods=['GET', 'POST'])
-def signup():
-    logout_user()
-    form = SignUpForm()
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            fname = request.form['firstname']
-            lname = request.form['lastname']
-            email = request.form['email']
-            pw_hash = generate_password_hash(request.form['password'])
-            new_user = Users(fname, lname, email, pw_hash)
+@app.route('/api/user/register', methods=['POST'])
+def register():
+    email = request.form['email']
+    password = generate_password_hash(request.form['password'])
+    name = request.form['name']
+    if name and email and password:
+        if Users.query.filter_by(email = email).first() is None:
+            new_user = Users(name, email, password)
             db.session.add(new_user)
             db.session.commit()
-            flash("Signup complete")
-            return redirect(url_for('login'))
-    return render_template('signup.html', form=form)
+            user = Users.query.filter_by(email = email).first()
+            token = user.generate_auth_token(600)
+            return jsonify({'error':'null', 'data':{'token': token.decode('ascii'), 'expires': 600, 'user':{'id': user.id, 'email': user.email, 'name': user.name}, 'message':'success'}})
+        if Users.query.filter_by(email = email).first() is not None:
+            user = Users.query.filter_by(email = email).first()
+            return jsonify({'error': '1', 'data': {'email': user.email}, 'message':'user already exists'})
+    
 
 #---Authenticate and login user
-@app.route('/api/user/login ', methods=['GET', 'POST'])
+@app.route('/api/user/login', methods=['POST'])
 def login():
-    if g.user is not None and g.user.is_authenticated:
-        return redirect(url_for('home'))
-    form = LoginForm()
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            uname = request.form['username']
-            pword = request.form['password']
-            user = Users.query.filter_by(email=uname).first()
-            if user is None:
-                return redirect(url_for('login'))
-            login_user(user)
-            return redirect(url_for('home'))
-    return render_template('login.html', form=form)
+    email = request.form['email']
+    password = request.form['password']
+    if email and password:
+        user = Users.query.filter_by(email=email).first()
+        if user and user.verify_password(password):
+            token = user.generate_auth_token(600)
+            return jsonify({'error':'null', 'data':{'token': token.decode('ascii'), 'expires': 600, 'user':{'id': user.id, 'email': user.email, 'name': user.name}, 'message':'success'}})
+        return jsonify({'error': '1', 'data':{}, 'message':'Bad user name or password'})
+        
 
 #---Display home page
 @app.route('/')
@@ -83,8 +81,13 @@ def home():
 def process():
     if request.method == 'POST':
         url = request.form['url']
-        data = requests.get(url)
-        soup = BeautifulSoup(data.text, 'html.parser')
+        headers = {'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:44.0) Gecko/20100101 Firefox/44.0',\
+        'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8','Accept-Language':'en-US,en;q=0.5',\
+        'Accept-Encoding':'none','Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3','Connection': 'keep-alive'}
+
+        request_ = urllib2.Request(url, headers=headers)
+        data = urllib2.urlopen(request_)
+        soup = BeautifulSoup(data, 'html.parser')
 
         links = []
         og_image = (soup.find('meta', property='og:image') or
@@ -99,7 +102,7 @@ def process():
             print thumbnail_spec['href']
 
         for img in soup.find_all("img", class_="a-dynamic-image", src=True):
-            if "sprite" not in img["src"]:
+            if "sprite" not in img["src"] and "data:image/jpeg" not in img["src"]:
                 links.append(urlparse.urljoin(url, img["src"]))
                 print urlparse.urljoin(url, img["src"])
 
@@ -110,51 +113,58 @@ def process():
         return response
     return render_template('url.html')
 
-#---Creates a new wishlist
-@app.route('/api/user/wishlist', methods=['GET', 'POST'])
-@login_required
-def newlist():
-    form = WishListForm()
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            title = request.form['title']
-            owner = g.user.id
-            new_list = WishList(title,owner)
-            db.session.add(new_list)
-            db.session.commit()
-            flash("Wishlist created successfully")
-            return render_template('create_wlist.html', form=form)
-    return render_template('create_wlist.html', form=form)
+# #---Creates a new wishlist
+# @app.route('/api/user/wishlist', methods=['GET', 'POST'])
+# @login_required
+# def newlist():
+#     form = WishListForm()
+#     if request.method == 'POST':
+#         if form.validate_on_submit():
+#             title = request.form['title']
+#             owner = g.user.id
+#             new_list = WishList(title,owner)
+#             db.session.add(new_list)
+#             db.session.commit()
+#             flash("Wishlist created successfully")
+#             return render_template('create_wlist.html', form=form)
+#     return render_template('create_wlist.html', form=form)
 
 #---Adds a wish
 @app.route('/api/user/<int:id>/wishlist', methods=['POST'])
 @login_required
 def wishlist(id):
-    list_id = id
-    form = WishForm()
     if request.method == 'POST':
-        if form.validate_on_submit():
-            title = request.form['title']
-            descr = request.form['description']
-            url = request.form['url']
-            new_wish = Wish(g.user.id,title,descr,url,list_id)
-            db.session.add(new_wish)
-            db.session.commit()
-            return redirect(url_for('view_wishes'))
-    return render_template('wishlist.html', form=form, f=list_id)
+        title = request.form['title']
+        description = request.form['description']
+        url = request.form['url']
+        thumbnail = request.form['thumbnail']
+        user = Users.query.filter_by(id=id).first()
+        if user:
+            wishlist = WishList.query.filter_by(owner=id).all()
+        # if title and url and thumbnail:
+            for wish in wishlist:
+                new_wish = WishList(id, title, description, url, thumbnail)
+                db.session.add(new_wish)
+                db.session.commit()
+                wlst = []
+                for wish_ in wishlist:
+                    wlst.append({'title':wish.title, 'description':wish.description, 'url':wish.url, 'thumbnail':wish.thumbnail})
+                resp = ({'error':'null', 'data':{'wishes': wlst}, 'message':'success'})
+                return jsonify(data)
+        return jsonify({'error':'1', 'data':'', 'message':'no such wishlist exists'})
 
 #---View created wishes
-@app.route('/api/user/<int:id>/wishlist')  
-@login_required
-def view_wishes(id):
-    from flask import g
-    userid = g.user.id    
-    t = WishList.query.filter_by(owner=id).all()
-    lst = []
-    for g in t:
-        wishlist = Wish.query.filter_by(owner=userid,list_=g.id).all()
-        lst.append(wishlist)
-    return render_template('wishes.html',lst=lst)
+# @app.route('/api/user/<int:id>/wishlist')
+# @login_required
+# def view_wishes(id):
+#     from flask import g
+#     userid = g.user.id    
+#     t = WishList.query.filter_by(owner=id).all()
+#     lst = []
+#     for g in t:
+#         wishlist = Wish.query.filter_by(owner=userid,list_=g.id).all()
+#         lst.append(wishlist)
+#     return render_template('wishes.html',lst=lst)
 
 @app.route('/logout')
 def logout():
