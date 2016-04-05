@@ -64,6 +64,7 @@ def login():
     if email and password:
         user = Users.query.filter_by(email=email).first()
         if user and user.verify_password(password):
+            g.user = user
             token = user.generate_auth_token(600)
             return jsonify({'error':'null', 'data':{'token': token.decode('ascii'), 'expires': 600, 'user':{'id': user.id, 'email': user.email, 'name': user.name}, 'message':'success'}})
         return jsonify({'error': '1', 'data':{}, 'message':'Bad user name or password'})
@@ -77,61 +78,43 @@ def home():
     return render_template('home.html')
 
 #---Returns json list of images
-@app.route('/api/thumbnail/process', methods=['POST', 'GET'])
+@app.route('/api/thumbnail/process', methods=['POST'])
 def process():
-    if request.method == 'POST':
-        url = request.form['url']
-        headers = {'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:44.0) Gecko/20100101 Firefox/44.0',\
-        'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8','Accept-Language':'en-US,en;q=0.5',\
-        'Accept-Encoding':'none','Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3','Connection': 'keep-alive'}
+    url = request.form['url']
+    headers = {'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:44.0) Gecko/20100101 Firefox/44.0',\
+    'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8','Accept-Language':'en-US,en;q=0.5',\
+    'Accept-Encoding':'none','Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3','Connection': 'keep-alive'}
 
-        request_ = urllib2.Request(url, headers=headers)
-        data = urllib2.urlopen(request_)
-        soup = BeautifulSoup(data, 'html.parser')
+    request_ = urllib2.Request(url, headers=headers)
+    data = urllib2.urlopen(request_)
+    soup = BeautifulSoup(data, 'html.parser')
 
-        links = []
-        og_image = (soup.find('meta', property='og:image') or
-                            soup.find('meta', attrs={'name': 'og:image'}))
-        if og_image and og_image['content']:
-            links.append(og_image['content'])
-            print og_image['content']
+    links = []
+    og_image = (soup.find('meta', property='og:image') or
+                        soup.find('meta', attrs={'name': 'og:image'}))
+    if og_image and og_image['content']:
+        links.append(og_image['content'])
+        print og_image['content']
 
-        thumbnail_spec = soup.find('link', rel='image_src')
-        if thumbnail_spec and thumbnail_spec['href']:
-            links.append(thumbnail_spec['href'])
-            print thumbnail_spec['href']
+    thumbnail_spec = soup.find('link', rel='image_src')
+    if thumbnail_spec and thumbnail_spec['href']:
+        links.append(thumbnail_spec['href'])
+        print thumbnail_spec['href']
 
-        for img in soup.find_all("img", class_="a-dynamic-image", src=True):
-            if "sprite" not in img["src"] and "data:image/jpeg" not in img["src"]:
-                links.append(urlparse.urljoin(url, img["src"]))
-                print urlparse.urljoin(url, img["src"])
+    for img in soup.find_all("img", class_="a-dynamic-image", src=True):
+        if "sprite" not in img["src"] and "data:image/jpeg" not in img["src"]:
+            links.append(urlparse.urljoin(url, img["src"]))
+            print urlparse.urljoin(url, img["src"])
 
-        response = jsonify({'error': '1', 'data':'', 'message':'Unable to extract thumbnails'})
+    response = jsonify({'error': '1', 'data':'', 'message':'Unable to extract thumbnails'})
 
-        if len(links)>0:
-            response = jsonify({'error': 'null', 'data': {'thumbnails': links }, 'message':'success'})
-        return response
-    return render_template('url.html')
-
-# #---Creates a new wishlist
-# @app.route('/api/user/wishlist', methods=['GET', 'POST'])
-# @login_required
-# def newlist():
-#     form = WishListForm()
-#     if request.method == 'POST':
-#         if form.validate_on_submit():
-#             title = request.form['title']
-#             owner = g.user.id
-#             new_list = WishList(title,owner)
-#             db.session.add(new_list)
-#             db.session.commit()
-#             flash("Wishlist created successfully")
-#             return render_template('create_wlist.html', form=form)
-#     return render_template('create_wlist.html', form=form)
+    if len(links)>0:
+        response = jsonify({'error': 'null', 'data': {'thumbnails': links }, 'message':'success'})
+    return response
 
 #---Adds a wish
-@app.route('/api/user/<int:id>/wishlist', methods=['POST'])
-@login_required
+@app.route('/api/user/<int:id>/wishlist', methods=['POST', 'GET'])
+# @login_required
 def wishlist(id):
     if request.method == 'POST':
         title = request.form['title']
@@ -140,31 +123,26 @@ def wishlist(id):
         thumbnail = request.form['thumbnail']
         user = Users.query.filter_by(id=id).first()
         if user:
+            new_wish = WishList(id, title, description, url, thumbnail)
+            db.session.add(new_wish)
+            db.session.commit()
+            wlst = []
             wishlist = WishList.query.filter_by(owner=id).all()
-        # if title and url and thumbnail:
-            for wish in wishlist:
-                new_wish = WishList(id, title, description, url, thumbnail)
-                db.session.add(new_wish)
-                db.session.commit()
-                wlst = []
-                for wish_ in wishlist:
-                    wlst.append({'title':wish.title, 'description':wish.description, 'url':wish.url, 'thumbnail':wish.thumbnail})
-                resp = ({'error':'null', 'data':{'wishes': wlst}, 'message':'success'})
-                return jsonify(data)
+            for wish_ in wishlist:
+                wlst.append({'title':wish_.title, 'description':wish_.description, 'url':wish_.url, 'thumbnail':wish_.thumbnail})
+            resp = ({'error':'null', 'data':{'wishes': wlst}, 'message':'success'})
+            return jsonify(resp)
         return jsonify({'error':'1', 'data':'', 'message':'no such wishlist exists'})
+    user = Users.query.filter_by(id=id).first()
+    if user:
+        wishlist = WishList.query.filter_by(owner=id).all()
+        wlst = []
+        for wish_ in wishlist:
+            wlst.append({'title':wish_.title, 'description':wish_.description, 'url':wish_.url, 'thumbnail':wish_.thumbnail})
+        resp = ({'error':'null', 'data':{'wishes': wlst}, 'message':'success'})
+        return jsonify(resp)
+    return jsonify({'error':'1', 'data':'', 'message':'no such wishlist exists'})
 
-#---View created wishes
-# @app.route('/api/user/<int:id>/wishlist')
-# @login_required
-# def view_wishes(id):
-#     from flask import g
-#     userid = g.user.id    
-#     t = WishList.query.filter_by(owner=id).all()
-#     lst = []
-#     for g in t:
-#         wishlist = Wish.query.filter_by(owner=userid,list_=g.id).all()
-#         lst.append(wishlist)
-#     return render_template('wishes.html',lst=lst)
 
 @app.route('/logout')
 def logout():
