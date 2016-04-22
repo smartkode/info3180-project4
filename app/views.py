@@ -10,9 +10,11 @@ from app import app
 from flask import render_template, request, redirect, url_for, jsonify, g, session, flash
 from app import db
 
+from datetime import datetime
+
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.models import Users, Wish, WishList
-from app.forms import LoginForm, SignUpForm, WishForm, WishListForm#, EditForm
+from app.forms import LoginForm, SignUpForm, WishForm, WishListForm, UrlForm#, EditForm
 
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from app import app, db
@@ -38,60 +40,140 @@ def load_user(id):
     return Users.query.get(int(id))
 
 #---Creates new users
-@app.route('/api/user/register', methods=['POST'])
+@app.route('/api/user/register', methods=['GET','POST'])
 def register():
-    email = request.form['email']
-    password = generate_password_hash(request.form['password'])
-    name = request.form['name']
-    if name and email and password:
-        if Users.query.filter_by(email = email).first() is None:
+    if request.method == 'POST' and 'User-Agent' not in request.headers:
+        email = request.form['email']
+        password = generate_password_hash(request.form['password'])
+        name = request.form['name']
+        if name and email and password:
+            if Users.query.filter_by(email = email).first() is None:
+                new_user = Users(name, email, password)
+                db.session.add(new_user)
+                db.session.commit()
+                user = Users.query.filter_by(email = email).first()
+                token = user.generate_auth_token(600)  #---visit tutorial on generating this
+                return jsonify({'error':'null', 'data':{'token': token.decode('ascii'), 'expires': 600, 'user':{'id': user.id, 'email': user.email, 'name': user.name}, 'message':'success'}})
+            if Users.query.filter_by(email = email).first() is not None:
+                user = Users.query.filter_by(email = email).first()
+                return jsonify({'error': '1', 'data': {'email': user.email}, 'message':'user already exists'})
+    form = SignUpForm()
+    if request.method == 'POST' and 'User-Agent' in request.headers:
+        if form.validate_on_submit():
+            email = request.form['email']
+            password = generate_password_hash(request.form['password'])
+            name = request.form['name']
             new_user = Users(name, email, password)
             db.session.add(new_user)
             db.session.commit()
-            user = Users.query.filter_by(email = email).first()
-            token = user.generate_auth_token(600)
-            return jsonify({'error':'null', 'data':{'token': token.decode('ascii'), 'expires': 600, 'user':{'id': user.id, 'email': user.email, 'name': user.name}, 'message':'success'}})
-        if Users.query.filter_by(email = email).first() is not None:
-            user = Users.query.filter_by(email = email).first()
-            return jsonify({'error': '1', 'data': {'email': user.email}, 'message':'user already exists'})
-    
+            # user = Users.query.filter_by(email = email).first()
+            # token = user.generate_auth_token(600)  #---visit tutorial on generating this
+            return redirect(url_for('login'))
+    return render_template(
+        'signup.html',
+        title='User Signup',
+        year=datetime.now().year,
+        form=form
+    )
 
 #---Authenticate and login user
-@app.route('/api/user/login', methods=['POST'])
+@app.route('/api/user/login', methods=['GET','POST'])
 def login():
-    email = request.form['email']
-    password = request.form['password']
-    if email and password:
-        user = Users.query.filter_by(email=email).first()
-        if user and user.verify_password(password):
-            g.user = user
-            token = user.generate_auth_token(600)
-            return jsonify({'error':'null', 'data':{'token': token.decode('ascii'), 'expires': 600, 'user':{'id': user.id, 'email': user.email, 'name': user.name}, 'message':'success'}})
-        return jsonify({'error': '1', 'data':{}, 'message':'Bad user name or password'})
+    if request.method == 'POST' and 'User-Agent' not in request.headers:
+        email = request.form['email']
+        password = request.form['password']
+        if email and password:
+            user = Users.query.filter_by(email=email).first()
+            if user and user.verify_password(password):
+                g.user = user
+                token = user.generate_auth_token(600)
+                return jsonify({'error':'null', 'data':{'token': token.decode('ascii'), 'expires': 600, 'user':{'id': user.id, 'email': user.email, 'name': user.name}, 'message':'success'}})
+            return jsonify({'error': '1', 'data':{}, 'message':'Bad user name or password'})
+    if g.user is not None and g.user.is_authenticated:
+        return redirect(url_for('home'))
+    form = LoginForm()
+    if request.method == 'POST' and 'User-Agent' in request.headers:
+        if form.validate_on_submit():
+            uname = request.form['username']
+            pword = request.form['password']
+            user = Users.query.filter_by(email=uname).first()
+            if user is None:
+                return redirect(url_for('login'))
+            login_user(user)
+            return redirect(request.args.get("next") or url_for('home'))
+    
+    return render_template(
+        'login.html',
+        title='User Login',
+        year=datetime.now().year,
+        form=form
+    )
         
 
 #---Display home page
-@app.route('/')
+# @app.route('/')
 @app.route('/home')
 @login_required
 def home():
-    return render_template('home.html')
+    return render_template(
+        'home.html',
+        title='Home',
+        year=datetime.now().year,
+    )
 
 #---Returns json list of images
-@app.route('/api/thumbnail/process', methods=['POST'])
+@app.route('/api/thumbnail/process', methods=['GET','POST'])
 def process():
-    url = request.form['url']
+    if request.method == 'POST' and 'User-Agent' not in request.headers:
+        url = request.form['url']
+        headers = {'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:44.0) Gecko/20100101 Firefox/44.0',\
+        'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8','Accept-Language':'en-US,en;q=0.5',\
+        'Accept-Encoding':'none','Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3','Connection': 'keep-alive'}
+
+        request_ = urllib2.Request(url, headers=headers)
+        data = urllib2.urlopen(request_)
+        soup = BeautifulSoup(data, 'html.parser')
+
+        links = []
+        og_image = (soup.find('meta', property='og:image') or soup.find('meta', attrs={'name': 'og:image'}))  
+        if og_image and og_image['content']:
+            links.append(og_image['content'])
+            print og_image['content']
+
+        thumbnail_spec = soup.find('link', rel='image_src')
+        if thumbnail_spec and thumbnail_spec['href']:
+            links.append(thumbnail_spec['href'])
+            print thumbnail_spec['href']
+
+        for img in soup.find_all("img", class_="a-dynamic-image", src=True):
+            if "sprite" not in img["src"] and "data:image/jpeg" not in img["src"]:
+                links.append(urlparse.urljoin(url, img["src"]))
+                print urlparse.urljoin(url, img["src"])
+
+        response = jsonify({'error': '1', 'data':'', 'message':'Unable to extract thumbnails'})
+
+        if len(links)>0:
+            response = jsonify({'error': 'null', 'data': {'thumbnails': links }, 'message':'success'})
+        return response
+    if request.method == 'POST' and 'User-Agent' in request.headers:
+        return "yo"
+    return render_template(
+        'url.html',
+        title='Process',
+        year=datetime.now().year
+    )
+
+def process_(url):
     headers = {'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:44.0) Gecko/20100101 Firefox/44.0',\
     'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8','Accept-Language':'en-US,en;q=0.5',\
     'Accept-Encoding':'none','Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3','Connection': 'keep-alive'}
-
+    # url = request.form['url']
     request_ = urllib2.Request(url, headers=headers)
     data = urllib2.urlopen(request_)
     soup = BeautifulSoup(data, 'html.parser')
 
-    links = []
-    og_image = (soup.find('meta', property='og:image') or
-                        soup.find('meta', attrs={'name': 'og:image'}))
+    links = []  
+    og_image = (soup.find('meta', property='og:image') or soup.find('meta', attrs={'name': 'og:image'}))
     if og_image and og_image['content']:
         links.append(og_image['content'])
         print og_image['content']
@@ -106,17 +188,19 @@ def process():
             links.append(urlparse.urljoin(url, img["src"]))
             print urlparse.urljoin(url, img["src"])
 
-    response = jsonify({'error': '1', 'data':'', 'message':'Unable to extract thumbnails'})
-
+    images = []
     if len(links)>0:
-        response = jsonify({'error': 'null', 'data': {'thumbnails': links }, 'message':'success'})
-    return response
-
+        for i in links:
+            l = '<img height=\'100px\' width=\'100px\' src=' + i + '>'
+            images.append(l)
+        return images
 #---Adds a wish
 @app.route('/api/user/<int:id>/wishlist', methods=['POST', 'GET'])
 # @login_required
 def wishlist(id):
-    if request.method == 'POST':
+    f = id
+    if request.method == 'POST' and 'User-Agent' not in request.headers:
+        url = request.form['url']
         title = request.form['title']
         description = request.form['description']
         url = request.form['url']
@@ -133,15 +217,51 @@ def wishlist(id):
             resp = ({'error':'null', 'data':{'wishes': wlst}, 'message':'success'})
             return jsonify(resp)
         return jsonify({'error':'1', 'data':'', 'message':'no such wishlist exists'})
-    user = Users.query.filter_by(id=id).first()
-    if user:
-        wishlist = WishList.query.filter_by(owner=id).all()
-        wlst = []
-        for wish_ in wishlist:
-            wlst.append({'title':wish_.title, 'description':wish_.description, 'url':wish_.url, 'thumbnail':wish_.thumbnail})
-        resp = ({'error':'null', 'data':{'wishes': wlst}, 'message':'success'})
-        return jsonify(resp)
-    return jsonify({'error':'1', 'data':'', 'message':'no such wishlist exists'})
+    
+    if request.method == 'GET' and 'User-Agent' not in request.headers:
+        user = Users.query.filter_by(id=id).first()
+        if user:
+            wishlist = WishList.query.filter_by(owner=id).all()
+            wlst = []
+            for wish_ in wishlist:
+                wlst.append({'title':wish_.title, 'description':wish_.description, 'url':wish_.url, 'thumbnail':wish_.thumbnail})
+            resp = ({'error':'null', 'data':{'wishes': wlst}, 'message':'success'})
+            return jsonify(resp)
+        return jsonify({'error':'1', 'data':'', 'message':'no such wishlist exists'})
+    
+    form1 = WishForm()
+    form2 = UrlForm()
+    if request.method == 'POST' and 'User-Agent' in request.headers:
+        # url = request.args.get('url', '', type=str)
+        url = request.form['url']
+        choice = process_(url)
+        # return "kell"
+        return "{}".format(choice)
+        # url = request.form['url']
+        # if url:
+        #     return process_(url)
+        # if form2.validate_on_submit():
+        #     url = request.args.get('url', 0, type=str)
+        #     choice = process_(url)
+        #     return jsonify({'url': choice})
+
+        # if form1.validate_on_submit():
+        #     title = request.form['title']
+        #     descr = request.form['description']
+        #     url = request.form['url']
+        #     # thumb = request.form['thumbnail']
+            
+        #     choice = process_(url)
+        #     return render_template('choose.html',links=choice)
+
+    return render_template(
+        'wishlist.html',
+        title='Wishlist',
+        year=datetime.now().year,
+        f=f,
+        form1=form1,
+        form2=form2
+    )
 
 
 @app.route('/logout')
@@ -149,11 +269,37 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-@app.route('/about/')
+# @app.route('/login')
+def login_():
+    form = LoginForm()
+    return render_template(
+        'login.html',
+        title='User Login',
+        year=datetime.now().year,
+        form=form
+    )
+
+@app.route('/about')
 def about():
     """Render the website's about page."""
-    return render_template('about.html')
+    return render_template(
+        'about.html',
+        title='About',
+        year=datetime.now().year,
+        message='Your application description page.'
+    )
 
+
+
+@app.route('/_add_numbers')
+def add_numbers():
+    a = request.args.get('a', 0, type=int)
+    b = request.args.get('b', 0, type=int)
+    return jsonify(result=a + b)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 ###
 # The functions below should be applicable to all Flask apps.
 ###

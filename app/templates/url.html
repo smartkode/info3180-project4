@@ -1,12 +1,11 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
 
 
 {% block js %}
 {% endblock %}
 
 
-{% block main %}
-{% include "nav.html" %}
+{% block content %}
 <div class="container">
     <form role="form" class="form-horizontal" action="/api/thumbnail/process" method="POST" enctype="multipart/form-data">
         <div class="form-group">

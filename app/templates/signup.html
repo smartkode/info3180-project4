@@ -1,29 +1,18 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
 
-{% block main %}
-{% include "nav.html" %}
+{% block content %}
 
 <div class="container">
-    <h1>Sign Up</h1>
-    <form class="form-horizontal" role="form" action="{{ url_for('signup') }}" method="POST" enctype="multipart/form-data">
+    <h4> {{ title }} </h4>
+    <form class="form-horizontal" role="form" action="{{ url_for('register') }}" method="POST" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
         <div class="form-group">
-            {% for message in form.firstname.errors %}
+            {% for message in form.name.errors %}
                 <div class="flash"> {{ message }} </div>
             {% endfor %}
             
             <div class="col-sm-4">
-                {{ form.firstname(class_="form-control",placeholder="First Name") }}
-            </div>
-        </div>
-
-        <div class="form-group">
-            {% for message in form.lastname.errors %}
-                <div class="flash"> {{ message }} </div>
-            {% endfor %}
-            
-            <div class="col-sm-4">
-                {{ form.lastname(class_="form-control",placeholder="Last Name") }}
+                {{ form.name(class_="form-control",placeholder="Firstname Lastname") }}
             </div>
         </div>
 
@@ -53,7 +42,7 @@
             {% endfor %}
             
             <div class="col-sm-4">
-                {{ form.password(class_="form-control",placeholder="New Password") }}
+                {{ form.password(class_="form-control",placeholder="Password") }}
             </div>
         </div>
 

@@ -1,0 +1,15 @@
+#blue {
+	box-shadow:0 2px 4px 0 rgba(0,0,255,0.7),0 2px 10px 0 rgba(0,0,255,0.8) !important
+}
+#green {
+	color:#5C663F !important;background-color:#49BFA4 !important
+}
+#purple {
+	color:#fff !important;background-color:#4C3F66 !important
+}
+#items {
+	color:#0F12BA
+}
+#red {
+	color:#F20707
+}

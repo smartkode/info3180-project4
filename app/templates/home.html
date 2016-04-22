@@ -1,13 +1,33 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
 
+{% block content %}
 
-{% block js %}
-{% endblock %}
+<div class="jumbotron">
+    <h1>Wishlist</h1>
+    <p class="lead">
+    	Flask is a free web framework for building great Web sites and Web applications using HTML, CSS and JavaScript. Wishlist was built using Flask.
+    </p>
+    <p><a href="http://flask.pocoo.org/" class="btn btn-primary btn-large">Learn more &raquo;</a></p>
+</div>
 
-
-{% block main %}
-{% include "nav.html" %}
-<h1>Home</h1>
-
+<div class="row">
+    <div class="col-md-4">
+        <h2>Wishlists</h2>
+        <p>
+            Click here to view your current wishlists.
+        </p>
+        <p><a class="btn btn-default" href="http://flask.pocoo.org/docs/">Learn more &raquo;</a></p>
+    </div>
+    <div class="col-md-4">
+        <h2>Profile</h2>
+        <p>Click here to get to your profile page.</p>
+        <p><a class="btn btn-default" href="https://pypi.python.org/pypi">Learn more &raquo;</a></p>
+    </div>
+    <div class="col-md-4">
+        <h2>Microsoft Azure</h2>
+        <p>You can easily publish to Microsoft Azure using Python Tools for Visual Studio. Find out how you can host your application using a free trial today.</p>
+        <p><a class="btn btn-default" href="http://azure.microsoft.com">Learn more &raquo;</a></p>
+    </div>
+</div>
 
 {% endblock %}

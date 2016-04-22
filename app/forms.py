@@ -24,11 +24,10 @@ def pword(form, field):
 
 
 class SignUpForm(Form):
-    firstname = TextField('Firstname', validators=[Required(), Length(min=2, max=64)])
-    lastname = TextField('Lastname', validators=[Required(), Length(min=2, max=64)])
+    name = TextField('Firstname', validators=[Required(), Length(min=2, max=64)])
     email = TextField('Email', validators=[Required(), Email(), EqualTo('confirm_email', message="Email must match"), email])
     confirm_email = TextField('Confirm Email', validators=[Required(), Email()])
-    password = PasswordField('Password', validators=[Required(), EqualTo('confirm_password', message="Passwords must match")])
+    password = PasswordField('Password', validators=[Required(), EqualTo('confirm_password', message="Passwords must match")]) #---maybe add regex for safe passwords
     confirm_password = PasswordField('Re-enter Password', validators=[Required()])
     submit = SubmitField('Submit')
 
@@ -47,6 +46,10 @@ class WishForm(Form):
 class WishListForm(Form):
 	title = TextField('Title', validators=[Required()])  # add per user validation
 	create = SubmitField('Create')
+    
+class UrlForm(Form):
+    url = URLField('URL', validators=[url()])
+    submit = SubmitField('Select Thumbnail')
 # class EditForm(Form):
 # 	title = TextField('Title', validators=[Required()])
 # 	description = TextAreaField('Description', validators=[Required()])

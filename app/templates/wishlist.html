@@ -1,38 +1,159 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
 
 
-{% block js %}
+{% block scripts %}
+
+
+<script type=text/javascript>
+// 	$(function() {
+// 		$('#thumb').click(function() {
+// 			$.getJSON($SCRIPT_ROOT + '/api/user/{{f}}/wishlist', {
+// 				url: $('input[name="url"]').val()
+// 			}, function(data) {
+// 			// $("#result").html(data.result);
+// 			$("#result").load('/api/user/{{f}}/wishlist')
+// 			});
+// 			return false;
+// 		});
+// 	});
+</script>
+<script type="text/javascript">
+	$("#thumb").click(function() {
+		$.post('/api/user/{{f}}/wishlist',
+		{
+			url: $('input[name="url"]').val()
+		},
+		function(data, status) {
+			var txt = data
+			var txt_u = txt.split("u\"")
+
+			img = []
+			for (var i = 1; i < txt_u.length - 1; i++) {
+				img[i] = '<img width=\'100px\' height=\'100px\' src=' + txt_u[i] + '>';
+			}
+
+			for (var i = 1; i < txt_u.length; i++) {
+				$("#result").append(txt_u[i]);
+			}
+			// for (var i = 0; i < img.length; i++) {
+			// 	$("#result").append(img[i]);
+			// }
+			
+			// alert("Data: " + data + "\nStatus: " + status);
+			// var txt_b = txt_u.split("[")
+			// var txt_e = txt_b.split("]")
+			
+			// txt_u.forEach(myfunction)
+			// function myfunction(item) {
+			// 	item = "<img src=" + item + ">";
+			// 	result.innerHTML=item;
+			// }
+			$("#result2").html(txt);
+		});
+	});
+</script>
+<script type="text/javascript"> 
+	// var numbers = [3,4,5];
+	// for (var i = 0; i < numbers.length; i++) {
+	// 	$("#demo2").append(numbers[i]);
+	// }
+</script>
+<script>
+
+// $("#thumb_").click(function() {
+// 	alert("Hello")
+// });
+
+// $("#thumb").click(function() {
+//     $("#rep").load("http://localhost:8080:/login", function(responseTxt, statusTxt, xhr){
+//         if(statusTxt == "success")
+//             alert("External content loaded successfully!");
+//         if(statusTxt == "error")
+//             alert("Error: " + xhr.status + ": " + xhr.statusText);
+//     });
+// });
+
+// var jqxhr = $.get( "http://localhost:8080:/login", function() {
+//   alert( "success" );
+// })
+//   .done(function() {
+//     alert( "second success" );
+//   })
+//   .fail(function() {
+//     alert( "error" );
+//   })
+//   .always(function() {
+//     alert( "finished" );
+//   });
+ 
+// Perform other work here ...
+ 
+// Set another completion function for the request above
+// jqxhr.always(function() {
+//   alert( "second finished" );
+// });
+
+// var = new XMLHttpRequest();
+
+
+</script>
+
+
+
+
 {% endblock %}
 
 
-{% block main %}
-{% include "nav.html" %}
+{% block content %}
+
 <div class="container">
 	<h1>Wishlist</h1>
-	<form class="form-horizontal" role="form" method="POST" action="{{ url_for('wishlist',list_id=f) }}" enctype="multipart/form-data">
-		{{ form.hidden_tag() }}
+	<form class="form-horizontal" role="form" method="POST" action="{{ url_for('wishlist',id=f) }}" enctype="multipart/form-data">
+		{{ form1.hidden_tag() }}
 		<div class="form-group">
 			<div class="col-sm-4">
-				{{ form.title(class_="form-control",placeholder="Title") }}
+				{{ form1.title(class_="form-control",placeholder="Title") }}
 			</div>
 		</div>
 
 		<div class="form-group">
 			<div class="col-sm-4">
-				{{ form.description(class_="form-control",placeholder="Description") }}
+				{{ form1.description(class_="form-control",placeholder="Description") }}
 			</div>
 		</div>
 		
-		<div class="form-group">
-			<div class="col-sm-4">
-				{{ form.url(class_="form-control",placeholder="Web link") }}
-			</div>
-		</div>
+		
+		
+		
 		<div class="form-group">
 			<div class="col-sm-10">
-				{{ form.add(class_="btn btn-default") }}
+				{{ form1.add(class_="btn btn-default") }}
 			</div>
 		</div>
 	</form>
 </div>
+<form class="form-horizontal" role="form" method="POST" action="{{ url_for('wishlist',id=f) }}" enctype="multipart/form-data">
+	{{ form2.hidden_tag() }}
+	<div class="form-group">
+		<div class="col-sm-4">
+			{{ form2.url(class_="form-control",placeholder="Web link to wishlist item") }}
+			<!-- <a href="{{ url_for('register') }}"></a> -->
+			<!-- <div id="thumb" class="btn btn-default">Select Thumbnail</div> -->
+		</div>
+	</div>
+	<div class="form-group">
+			<div class="col-sm-10">
+				{{ form2.submit(class_="btn btn-default") }}
+			</div>
+		</div>
+		<div id="thumb" class="btn btn-default">Select Thumbnail</div>
+</form>
+<div id="result"></div>
+<div id="result2"> </div>
+
+<!-- <button id="pip" >Try it</button>
+<p id="demo">dd</p>
+<p id="demo2"></p> -->
+
+
 {% endblock %}
