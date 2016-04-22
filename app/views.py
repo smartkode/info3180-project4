@@ -167,7 +167,7 @@ def process_(url):
     headers = {'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:44.0) Gecko/20100101 Firefox/44.0',\
     'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8','Accept-Language':'en-US,en;q=0.5',\
     'Accept-Encoding':'none','Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3','Connection': 'keep-alive'}
-    # url = request.form['url']
+    
     request_ = urllib2.Request(url, headers=headers)
     data = urllib2.urlopen(request_)
     soup = BeautifulSoup(data, 'html.parser')
@@ -191,9 +191,12 @@ def process_(url):
     images = []
     if len(links)>0:
         for i in links:
-            l = '<img height=\'100px\' width=\'100px\' src=' + i + '>'
+            l = '<div class=\'btn btn-default\'><img height=\'100px\' width=\'100px\' src=' + i + '></img></div>'
             images.append(l)
-        return images
+    set_ = ""
+    for i in images:
+        set_ += i
+    return set_
 #---Adds a wish
 @app.route('/api/user/<int:id>/wishlist', methods=['POST', 'GET'])
 # @login_required
