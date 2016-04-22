@@ -2,7 +2,7 @@ from app import db
 from flask import session
 from flask.ext.wtf import Form
 from wtforms import TextField, SubmitField, PasswordField, TextAreaField
-from wtforms.validators import DataRequired, Required, Length, Email, EqualTo, url
+from wtforms.validators import DataRequired, Required, Length, Email, EqualTo, URL
 from app.models import Users
 from werkzeug.security import generate_password_hash, check_password_hash
 from wtforms.fields.html5 import URLField
@@ -38,17 +38,18 @@ class LoginForm(Form):
 	
 
 class WishForm(Form):
-	title = TextField('Title', validators=[Required()])  # add per user validation
-	description = TextAreaField('Description', validators=[Required()]) # add per user validation
-	url = URLField('URL', validators=[url()]) # add per user validation
-	add = SubmitField('Add')
+    title = TextField('Title', validators=[Required()])  # add per user validation
+    description = TextAreaField('Description', validators=[Required()]) # add per user validation
+    url = URLField('URL', validators=[URL()]) # add per user validation
+    thumbnail = URLField('Thumbnail', validators=[URL()])
+    add = SubmitField('Add')
 
 class WishListForm(Form):
 	title = TextField('Title', validators=[Required()])  # add per user validation
 	create = SubmitField('Create')
     
 class UrlForm(Form):
-    url = URLField('URL', validators=[url()])
+    url = URLField('URL', validators=[URL()])
     submit = SubmitField('Select Thumbnail')
 # class EditForm(Form):
 # 	title = TextField('Title', validators=[Required()])

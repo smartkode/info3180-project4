@@ -14,7 +14,7 @@ from datetime import datetime
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.models import Users, Wish, WishList
-from app.forms import LoginForm, SignUpForm, WishForm, WishListForm, UrlForm#, EditForm
+from app.forms import LoginForm, SignUpForm, WishForm, WishListForm#, UrlForm, EditForm
 
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from app import app, db
@@ -191,12 +191,13 @@ def process_(url):
     images = []
     if len(links)>0:
         for i in links:
-            l = '<div class=\'btn btn-default\'><img height=\'100px\' width=\'100px\' src=' + i + '></img></div>'
+            l = '<div class=\'choice btn btn-default\'><img height=\'100px\' width=\'100px\' src=' + i + '></img></div>'
             images.append(l)
     set_ = ""
     for i in images:
         set_ += i
     return set_
+
 #---Adds a wish
 @app.route('/api/user/<int:id>/wishlist', methods=['POST', 'GET'])
 # @login_required
@@ -232,38 +233,42 @@ def wishlist(id):
             return jsonify(resp)
         return jsonify({'error':'1', 'data':'', 'message':'no such wishlist exists'})
     
-    form1 = WishForm()
-    form2 = UrlForm()
+    form = WishForm()
+    
     if request.method == 'POST' and 'User-Agent' in request.headers:
-        # url = request.args.get('url', '', type=str)
-        url = request.form['url']
-        choice = process_(url)
-        # return "kell"
-        return "{}".format(choice)
-        # url = request.form['url']
-        # if url:
-        #     return process_(url)
-        # if form2.validate_on_submit():
-        #     url = request.args.get('url', 0, type=str)
-        #     choice = process_(url)
-        #     return jsonify({'url': choice})
+        if len(request.form) == 1:
+            url = request.form['url']
+            choice = process_(url)
+            return "{}".format(choice)
+        # return "{}".format(len(request.form))
 
-        # if form1.validate_on_submit():
-        #     title = request.form['title']
-        #     descr = request.form['description']
-        #     url = request.form['url']
-        #     # thumb = request.form['thumbnail']
-            
-        #     choice = process_(url)
-        #     return render_template('choose.html',links=choice)
+        if form.validate_on_submit():
+            title = request.form['title']
+            descr = request.form['description']
+            url = request.form['url']
+            thumb = request.form['thumbnail']
+            user = Users.query.filter_by(id=id).first()
+            if user:
+                new_wish = WishList(id, title, descr, url, thumb)
+                db.session.add(new_wish)
+                db.session.commit()
+                wishlist = WishList.query.filter_by(owner=id).all()
+                return render_template(
+                    'wishlist.html',
+                    title='Wishlist',
+                    year=datetime.now().year,
+                    f=f,
+                    form=form,
+                    wishlist=wishlist
+                )
+
 
     return render_template(
         'wishlist.html',
         title='Wishlist',
         year=datetime.now().year,
         f=f,
-        form1=form1,
-        form2=form2
+        form=form
     )
 
 
