@@ -287,6 +287,8 @@ def wishlist(id):
                     wishlist=wishlist_,
                     user=g.user
                 )
+    e_form = SendEmailForm()
+
     return render_template(
         'wishlist.html',
         title='Wishlist',
@@ -294,6 +296,7 @@ def wishlist(id):
         f=f,
         wishlist=wishlist,
         form=form,
+        e_form = e_form,
         user=g.user
     )
 

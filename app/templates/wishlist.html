@@ -49,15 +49,9 @@
 	});
 </script>
 <script type="text/javascript">
-	var pg = require(`pg`);
-	var dbcon = "postgresql:///postgres";
-	var pgClient = new pg.Client(dbcon);
-	pgClient.connect();
-	var query = pgClient.query("SELECT * from wish_list");
-	query.on("row", function(row,result) {
-		result.addRow(row);
-	});
-	$("#test3").html(result);
+	function share() {
+		document.getElementById("email").style.display = "block";
+	}
 </script>
 
 {% endblock %}
@@ -122,6 +116,23 @@
 	<div class="col-sm-6" id="test">
 		<div class="col-sm-12">
 			<h3>{{ user.name }}'s Wishlist</h3>
+
+			<h5 id="h5sha"><button id="edit" onclick="share()" type="button" class="btn btn-primary btn-xs">Share</button> with friends</h5> 
+			<div id="email">
+				<div class='col-sm-12'>
+					<form class='form-horizontal' role='form' method='POST' action='' enctype='multipart/form-data'>
+						<div class='form-group'>
+							<div class='col-sm-6'>
+								{% for message in e_form.name.errors %}
+									<div class='field-validation-error'> {{ message }} </div>
+								{% endfor %}
+								{{ e_form.name(class_="form-control",placeholder="Name") }}
+							</div>
+						</div>
+					</form>
+				</div>
+			</div>
+			<hr/>
 			<div id="wlist">
 				<ol>
 				{% for i in wishlist %}
@@ -131,6 +142,7 @@
 							<div><img class="rem" width="60px" height="60px" src="{{ i.thumbnail }}"></div>
 							<p>{{ i.description }}</p>
 							<div class="btn-group">
+								<!-- <button id="edit" type="button" class="btn btn-primary btn-xs">Share</button> -->
 								<button id="edit" type="button" class="btn btn-primary btn-xs">Edit</button>
 								<button id="del" type="button" class="btn btn-danger btn-xs">Delete</button>
 							</div>

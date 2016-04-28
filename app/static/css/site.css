@@ -44,3 +44,10 @@ input[type="checkbox"].input-validation-error {
 #thumbnail {
     display: none;
 }
+
+#h5sha {
+    display: inline-block;
+}
+ #email {
+    display: none;
+ }
