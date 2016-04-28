@@ -28,26 +28,26 @@
                 <ul class="nav navbar-nav">
                     <li><a href="{{ url_for('home') }}">Home</a></li>
                     <li><a href="{{ url_for('about') }}">About</a></li>
-                    
+                    {% if user is not none and user.is_authenticated %}
+                        <li><a href="{{ url_for('wishlist',id=user.id) }}">Wishlist</a></li>
+                    {% endif %}
                 </ul>
-                </ul>
-                    <ul class="nav navbar-nav navbar-right">
+                <ul class="nav navbar-nav navbar-right">
                     <li><a href="{{ url_for('login') }}"><span class="glyphicon glyphicon-log-in"></span>Login</a></li>
                     <li><a href="{{ url_for('logout') }}"><span class="glyphicon glyphicon-log-out"></span>Logout</a></li>
-                    
                 </ul>
             </div>
         </div>
     </div>
 
     <div class="container body-content">
-        {% block content %}{% endblock %}
+        {% block content %} {% endblock %} 
         <hr />
         <footer>
             <p>&copy; {{ year }} - Wishlist System</p>
-        </footer>
+        </footer>       
     </div>
-
+    
     
     {% block scripts %}
     {% endblock %}

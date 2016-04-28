@@ -9,16 +9,63 @@
 		{
 			url: $('input[name="url"]').val()
 		},
-		function(data) {
-			// var txt = data
+		function(data, status) {
 			$("#result").html(data);
+			console.log(data);
+			if (status == "success") {
+				$(function() {
+					$("img").click(function(event){
+						$("#thumbnail").val("" + event.target.src);
+						$("#result").html(event.target);
+						$("#sel").html("");
+						$("#thumb").html("");
+					});
+				});
+			}
+		});
+		$("#sel").html("Click an image to save as your thumbnail (Images might take a few seconds to load).");
+	});
+</script>
+<script type="text/javascript">
+// var nodelist = $.getElementsByClassName("rem")
+	// var x = document.getElementById("wlist").querySelectorAll(".rem");
+	// for (var i = 0; i < x.length; i++) {
+	// 	alert("" + x[i].src);
+	// }
+	// alert(x);
+	$("#del").click(function(event) {
+		// var x = document.getElementById("wlist").querySelectorAll(".rem");
+		var remove = event.target.parentNode.previousSibling.previousSibling.previousSibling.previousSibling.firstChild.src;
+		console.log(remove)
+		// for (var i = 0; i < x.length; i++) {
+		// 	if (x[i].src == event.target.parentNode.previousSibling.previousSibling.firstChild.src) {
+
+		// 	}
+		// 	alert("" + x[i].src);
+		// }
+		$.post('/api/user/{{f}}/wishlist',
+		{
+			wish: remove
+		},
+		function(data, status) {
+			if (status == "success") {
+				alert(data);
+				// alert()
+			}
+			alert(status);
 		});
 	});
 </script>
 <script type="text/javascript">
-	// $(".choice").click(function() {
-	// 	$("#thumbnail").html()
-	// });
+	var pg = require(`pg`);
+	var dbcon = "postgresql:///postgres";
+	var pgClient = new pg.Client(dbcon);
+	pgClient.connect();
+	var query = pgClient.query("SELECT * from wish_list");
+	query.on("row", function(row,result) {
+		result.addRow(row);
+	});
+	$("#test3").html(result);
 </script>
 
 {% endblock %}
@@ -27,54 +74,86 @@
 {% block content %}
 
 <div class="container">
-	<h1>Wishlist</h1>
-	<form class="form-horizontal" role="form" method="POST" action="{{ url_for('wishlist',id=f) }}" enctype="multipart/form-data">
-		{{ form.hidden_tag() }}
-		<div class="form-group">
-			<div class="col-sm-4">
-				{{ form.title(class_="form-control",placeholder="Title") }}
+	<div class="col-sm-6">
+		<h1>Wishlist</h1>
+		<form class="form-horizontal" role="form" method="POST" action="{{ url_for('wishlist',id=user.id) }}" enctype="multipart/form-data">
+			{{ form.hidden_tag() }}
+			<div class="form-group">
+				<div class="col-sm-6">
+					{% for message in form.title.errors %}
+		                <div class="field-validation-error"> {{ message }} </div>
+		            {% endfor %}
+					{{ form.title(class_="form-control",placeholder="Title") }}
+				</div>
 			</div>
-		</div>
 
-		<div class="form-group">
-			<div class="col-sm-4">
-				{{ form.description(class_="form-control",placeholder="Description") }}
+			<div class="form-group">
+				<div class="col-sm-6">
+					{% for message in form.description.errors %}
+		                <div class="field-validation-error"> {{ message }} </div>
+		            {% endfor %}
+					{{ form.description(class_="form-control",placeholder="Description") }}
+				</div>
 			</div>
-		</div>
 
-		<div class="form-group">
-			<div class="col-sm-4">
-				{{ form.url(class_="form-control",placeholder="Web link to wishlist item") }}
+			<div class="form-group">
+				<div class="col-sm-6">
+					{% for message in form.url.errors %}
+		                <div class="field-validation-error"> {{ message }} </div>
+		            {% endfor %}
+					{{ form.url(class_="form-control",placeholder="Web link to wishlist item") }}
+				</div>
 			</div>
-		</div>
 
-		<div class="form-group">
-			<div class="col-sm-4">
-				<div id="thumb" class="btn btn-default">Retrieve Thumbnail</div>
+			<div id="thumb" class="form-group">
+				<div class="col-sm-4">
+					<div id="thumb" class="btn btn-default">Retrieve Thumbnail</div>
+				</div>
 			</div>
-		</div>
-		<div id="result"></div>
-		
-		<div class="form-group">
-			<div class="col-sm-4">
-				{{ form.thumbnail(class_="form-control",placeholder="Web link to item thumbnail") }}
+			<div id="sel"></div>
+			<div class="try" id="result"></div>
+			
+			<div class="form-group">
+				<div class="col-sm-6">
+					{{ form.thumbnail }}
+				</div>
 			</div>
-		</div>
 
-		<div class="form-group">
-			<div class="col-sm-10">
-				{{ form.add(class_="btn btn-default") }}
+			<div class="form-group">
+				<div class="col-sm-10">
+					{{ form.add(class_="btn btn-default") }}
+				</div>
 			</div>
+		</form>
+	</div>
+
+	<div class="col-sm-6" id="test">
+		<div class="col-sm-12">
+			<h3>{{ user.name }}'s Wishlist</h3>
+			<div id="wlist">
+				<ol>
+				{% for i in wishlist %}
+					<li>
+						<div>
+							<h4>{{ i.title }}</h4>
+							<div><img class="rem" width="60px" height="60px" src="{{ i.thumbnail }}"></div>
+							<p>{{ i.description }}</p>
+							<div class="btn-group">
+								<button id="edit" type="button" class="btn btn-primary btn-xs">Edit</button>
+								<button id="del" type="button" class="btn btn-danger btn-xs">Delete</button>
+							</div>
+						</div>
+					</li>
+				{% endfor %}
+				</ol>
+			</div>
+
 		</div>
-	</form>
+	</div>
 </div>
-
-<div id="result"></div>
-<!-- <div id="result2"> </div> -->
-{{ wishlist }}
-<!-- <button id="pip" >Try it</button>
-<p id="demo">dd</p>
-<p id="demo2"></p> -->
-
+<div>
+	Results
+	<div id="test3"></div>
+</div>
 
 {% endblock %}

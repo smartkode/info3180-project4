@@ -26,6 +26,7 @@ import requests
 from bs4 import BeautifulSoup
 import urlparse
 import urllib2
+import sys
 
 ###
 # Routing for your application.
@@ -73,7 +74,8 @@ def register():
         'signup.html',
         title='User Signup',
         year=datetime.now().year,
-        form=form
+        form=form,
+        user=g.user
     )
 
 #---Authenticate and login user
@@ -100,18 +102,19 @@ def login():
             if user is None:
                 return redirect(url_for('login'))
             login_user(user)
-            return redirect(request.args.get("next") or url_for('home'))
+            return redirect(request.args.get("next") or url_for('wishlist',id=g.user.id))
     
     return render_template(
         'login.html',
         title='User Login',
         year=datetime.now().year,
-        form=form
+        form=form,
+        user=g.user
     )
         
 
 #---Display home page
-# @app.route('/')
+@app.route('/')
 @app.route('/home')
 @login_required
 def home():
@@ -119,6 +122,7 @@ def home():
         'home.html',
         title='Home',
         year=datetime.now().year,
+        user=g.user
     )
 
 #---Returns json list of images
@@ -190,19 +194,22 @@ def process_(url):
 
     images = []
     if len(links)>0:
-        for i in links:
-            l = '<div class=\'choice btn btn-default\'><img height=\'100px\' width=\'100px\' src=' + i + '></img></div>'
+        for t in range(0, len(links)):
+            l = '<div  class=\'btn grab\'><img id=\'tick' + str(t) +  '\' height=\'100px\' width=\'100px\' src=' + links[t] + '></img></div>'
             images.append(l)
+
     set_ = ""
     for i in images:
         set_ += i
     return set_
+    # return images
 
 #---Adds a wish
 @app.route('/api/user/<int:id>/wishlist', methods=['POST', 'GET'])
-# @login_required
+@login_required
 def wishlist(id):
     f = id
+    wishlist = WishList.query.filter_by(owner=id).all()
     if request.method == 'POST' and 'User-Agent' not in request.headers:
         url = request.form['url']
         title = request.form['title']
@@ -237,11 +244,30 @@ def wishlist(id):
     
     if request.method == 'POST' and 'User-Agent' in request.headers:
         if len(request.form) == 1:
-            url = request.form['url']
-            choice = process_(url)
-            return "{}".format(choice)
-        # return "{}".format(len(request.form))
-
+            print "hello world  "
+            try:
+                url = request.form['url']
+                choice = process_(url)
+                return "{}".format(choice)
+            except Exception as e:
+                try:
+                    wish = request.form['wish']
+                    db.session.execute("DELETE FROM wish_list WHERE thumbnail=\'"+ wish + "\'")
+                    db.session.commit()
+                except Exception as d:
+                    print "Unexpected error:", sys.exc_info()[0]
+                    raise
+        
+            return render_template(
+                    'wishlist.html',
+                    title='Wishlist',
+                    year=datetime.now().year,
+                    f=f,
+                    form=form,
+                    user=g.user
+                )
+        print "good bye world"
+        # if len(request.form) > 1:
         if form.validate_on_submit():
             title = request.form['title']
             descr = request.form['description']
@@ -252,23 +278,24 @@ def wishlist(id):
                 new_wish = WishList(id, title, descr, url, thumb)
                 db.session.add(new_wish)
                 db.session.commit()
-                wishlist = WishList.query.filter_by(owner=id).all()
+                wishlist_ = WishList.query.filter_by(owner=id).all()
                 return render_template(
                     'wishlist.html',
                     title='Wishlist',
                     year=datetime.now().year,
                     f=f,
                     form=form,
-                    wishlist=wishlist
+                    wishlist=wishlist_,
+                    user=g.user
                 )
-
-
     return render_template(
         'wishlist.html',
         title='Wishlist',
         year=datetime.now().year,
         f=f,
-        form=form
+        wishlist=wishlist,
+        form=form,
+        user=g.user
     )
 
 
@@ -294,20 +321,23 @@ def about():
         'about.html',
         title='About',
         year=datetime.now().year,
-        message='Your application description page.'
+        message='Your application description page.',
+        user=g.user
     )
 
 
 
 @app.route('/_add_numbers')
 def add_numbers():
-    a = request.args.get('a', 0, type=int)
-    b = request.args.get('b', 0, type=int)
-    return jsonify(result=a + b)
+    form = LoginForm()
+    return render_template("_form_helpers.html",form=form)
+#     a = request.args.get('a', 0, type=int)
+#     b = request.args.get('b', 0, type=int)
+#     return jsonify(result=a + b)
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+# @app.route('/')
+# def index():
+#     return render_template('index.html')
 ###
 # The functions below should be applicable to all Flask apps.
 ###
@@ -339,3 +369,94 @@ def not_found(error):
 
 if __name__ == '__main__':
     app.run(debug=True,host="0.0.0.0",port=8888)
+
+    # try:
+    #     url = request.form['url']
+    #     choice = process_(url)
+    #     return "{}".format(choice)
+    # except Exception as e:
+    #     try:
+    #         wish = request.form['wish']
+    #         db.session.execute("DELETE FROM wish_list WHERE thumbnail=\'"+ wish + "\'")
+    #         db.session.commit()
+    #     except Exception as d:
+    #         print "Unexpected error:", sys.exc_info()[0]
+    #         raise
+
+    # try:
+        #     wish = request.form['wish'] #or
+        #     url = request.form['url']
+        # except Exception, e:
+        #     return "{}".format(e)
+        # else:
+        #     if wish:
+        #         db.session.execute("DELETE FROM wish_list WHERE thumbnail=\'"+ wish + "\'")
+        #         db.session.commit()
+        #         return "{}".format(wish)
+        #     if url:
+        #         choice = process_(url)
+        #         return "{}".format(choice)
+                
+        
+        # try:
+        #     url = request.form['url']
+        # except Exception, e:
+        #     return "{}".format(e)
+        # else:
+        #     choice = process_(url)
+        #     return "{}".format(choice)
+
+        # finally:
+        #     pass
+            # wish = request.form['wish']
+
+            # if url:
+            # if len(request.form) == 1 and request.form['url']:
+                # url = request.form['url']
+                # choice = process_(url)
+                # return "{}".format(choice)
+                # return render_template(
+                #         'wishlist.html',
+                #         title='Wishlist',
+                #         year=datetime.now().year,
+                #         f=f,
+                #         form=form,
+                #         user=g.user,
+                #         lst=choice
+                #     )
+            # elif wish:
+            # if len(request.form) == 1 and request.form['wish']:
+                # url = request.form['wish']
+        #         db.session.execute("DELETE FROM wish_list WHERE thumbnail=\'"+ wish + "\'")
+        #         db.session.commit()
+        #         return "{}".format(url)
+        # except Exception, e:
+        #     # rais
+        #     print e
+
+        
+        # url = ""
+        # # wish = ""
+        # print len(request.form)
+        # print str(request.form)
+
+        # if len(request.form)==1:
+        #     if request.form['url']:
+        #         url = request.form['url']
+        #         choice = process_(url)
+        #         return "{}".format(choice)
+        #         # print "this came from url"
+        #     # if request.form['wish']:
+        #     else:
+        #         wish = request.form['wish']
+        #         db.session.execute("DELETE FROM wish_list WHERE thumbnail=\'"+ wish + "\'")
+        #         db.session.commit()
+                # print "this came from wish"
+            # if url != "":
+            # url = request.form['url']
+                # choice = process_(url)
+                # return "{}".format(choice)
+            # if wish != "":
+                # db.session.execute("DELETE FROM wish_list WHERE thumbnail=\'"+ wish + "\'")
+                # db.session.commit()
+                # return "{}".format(url)

@@ -1,11 +1,12 @@
 from app import db
-from flask import session
+from flask import session, g
 from flask.ext.wtf import Form
 from wtforms import TextField, SubmitField, PasswordField, TextAreaField
 from wtforms.validators import DataRequired, Required, Length, Email, EqualTo, URL
-from app.models import Users
+from app.models import Users, WishList
 from werkzeug.security import generate_password_hash, check_password_hash
 from wtforms.fields.html5 import URLField
+from flask.ext.login import current_user
 
 def email(form, field):
     user = Users.query.filter_by(email = field.data.lower()).first()
@@ -22,6 +23,12 @@ def pword(form, field):
     if user and not check_password_hash(user.password, field.data):
     	field.errors.append("Invalid password")
 
+def dup(form, field):
+    wishlist = WishList.query.filter_by(owner = g.user.id).all()
+    for wish in wishlist:
+        if form.url.data == wish.url:
+            field.errors.append("This item is already on your Wishlist")
+    # ? = owner
 
 class SignUpForm(Form):
     name = TextField('Firstname', validators=[Required(), Length(min=2, max=64)])
@@ -40,9 +47,9 @@ class LoginForm(Form):
 class WishForm(Form):
     title = TextField('Title', validators=[Required()])  # add per user validation
     description = TextAreaField('Description', validators=[Required()]) # add per user validation
-    url = URLField('URL', validators=[URL()]) # add per user validation
+    url = URLField('URL', validators=[URL(),dup]) # add per user validation
     thumbnail = URLField('Thumbnail', validators=[URL()])
-    add = SubmitField('Add')
+    add = SubmitField('Add to Wishlist')
 
 class WishListForm(Form):
 	title = TextField('Title', validators=[Required()])  # add per user validation
