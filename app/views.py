@@ -14,7 +14,7 @@ from datetime import datetime
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.models import Users, Wish, WishList
-from app.forms import LoginForm, SignUpForm, WishForm, WishListForm#, UrlForm, EditForm
+from app.forms import LoginForm, SignUpForm, WishForm, WishListForm, SendEmailForm#, UrlForm, EditForm
 
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from app import app, db
@@ -28,6 +28,7 @@ import urlparse
 import urllib2
 import sys
 
+import smtplib
 ###
 # Routing for your application.
 ###
@@ -244,7 +245,7 @@ def wishlist(id):
     
     if request.method == 'POST' and 'User-Agent' in request.headers:
         if len(request.form) == 1:
-            print "hello world  "
+            # print "hello world  "
             try:
                 url = request.form['url']
                 choice = process_(url)
@@ -266,8 +267,6 @@ def wishlist(id):
                     form=form,
                     user=g.user
                 )
-        print "good bye world"
-        # if len(request.form) > 1:
         if form.validate_on_submit():
             title = request.form['title']
             descr = request.form['description']
@@ -304,16 +303,6 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-# @app.route('/login')
-def login_():
-    form = LoginForm()
-    return render_template(
-        'login.html',
-        title='User Login',
-        year=datetime.now().year,
-        form=form
-    )
-
 @app.route('/about')
 def about():
     """Render the website's about page."""
@@ -325,22 +314,6 @@ def about():
         user=g.user
     )
 
-
-
-@app.route('/_add_numbers')
-def add_numbers():
-    form = LoginForm()
-    return render_template("_form_helpers.html",form=form)
-#     a = request.args.get('a', 0, type=int)
-#     b = request.args.get('b', 0, type=int)
-#     return jsonify(result=a + b)
-
-# @app.route('/')
-# def index():
-#     return render_template('index.html')
-###
-# The functions below should be applicable to all Flask apps.
-###
 
 @app.route('/<file_name>.txt')
 def send_text_file(file_name):
@@ -370,93 +343,40 @@ def not_found(error):
 if __name__ == '__main__':
     app.run(debug=True,host="0.0.0.0",port=8888)
 
-    # try:
-    #     url = request.form['url']
-    #     choice = process_(url)
-    #     return "{}".format(choice)
-    # except Exception as e:
-    #     try:
-    #         wish = request.form['wish']
-    #         db.session.execute("DELETE FROM wish_list WHERE thumbnail=\'"+ wish + "\'")
-    #         db.session.commit()
-    #     except Exception as d:
-    #         print "Unexpected error:", sys.exc_info()[0]
-    #         raise
+ #-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\
 
-    # try:
-        #     wish = request.form['wish'] #or
-        #     url = request.form['url']
-        # except Exception, e:
-        #     return "{}".format(e)
-        # else:
-        #     if wish:
-        #         db.session.execute("DELETE FROM wish_list WHERE thumbnail=\'"+ wish + "\'")
-        #         db.session.commit()
-        #         return "{}".format(wish)
-        #     if url:
-        #         choice = process_(url)
-        #         return "{}".format(choice)
-                
-        
-        # try:
-        #     url = request.form['url']
-        # except Exception, e:
-        #     return "{}".format(e)
-        # else:
-        #     choice = process_(url)
-        #     return "{}".format(choice)
+@app.route('/contact', methods=['GET', 'POST'])
+def contact():
+    form = SendEmailForm()
+    if request.method =='POST':
+        sendmail()
+    return render_template('contact.html', form=form)
 
-        # finally:
-        #     pass
-            # wish = request.form['wish']
+def sendmail():
+    fromaddr = request.form['email']
+    toaddr  = 'cmclaren89@gmail.com'
+    message = """From: {} <{}>
+    To: {} <{}>
+    Subject: {}
 
-            # if url:
-            # if len(request.form) == 1 and request.form['url']:
-                # url = request.form['url']
-                # choice = process_(url)
-                # return "{}".format(choice)
-                # return render_template(
-                #         'wishlist.html',
-                #         title='Wishlist',
-                #         year=datetime.now().year,
-                #         f=f,
-                #         form=form,
-                #         user=g.user,
-                #         lst=choice
-                #     )
-            # elif wish:
-            # if len(request.form) == 1 and request.form['wish']:
-                # url = request.form['wish']
-        #         db.session.execute("DELETE FROM wish_list WHERE thumbnail=\'"+ wish + "\'")
-        #         db.session.commit()
-        #         return "{}".format(url)
-        # except Exception, e:
-        #     # rais
-        #     print e
-
-        
-        # url = ""
-        # # wish = ""
-        # print len(request.form)
-        # print str(request.form)
-
-        # if len(request.form)==1:
-        #     if request.form['url']:
-        #         url = request.form['url']
-        #         choice = process_(url)
-        #         return "{}".format(choice)
-        #         # print "this came from url"
-        #     # if request.form['wish']:
-        #     else:
-        #         wish = request.form['wish']
-        #         db.session.execute("DELETE FROM wish_list WHERE thumbnail=\'"+ wish + "\'")
-        #         db.session.commit()
-                # print "this came from wish"
-            # if url != "":
-            # url = request.form['url']
-                # choice = process_(url)
-                # return "{}".format(choice)
-            # if wish != "":
-                # db.session.execute("DELETE FROM wish_list WHERE thumbnail=\'"+ wish + "\'")
-                # db.session.commit()
-                # return "{}".format(url)
+    {}
+    """
+    msg = request.form['message']
+    fromname = request.form['name']
+    toname = "Craig McLaren"
+    subject = request.form['subject']
+    messagetosend = message.format(
+                             fromname,
+                             fromaddr,
+                             toname,
+                             toaddr,
+                             subject,
+                             msg)
+    username = 'cmclaren89@gmail.com'
+    password = 'uwdaqbgqxdmhbdzo'
+    server = smtplib.SMTP('smtp.gmail.com:587')
+    server.starttls()
+    server.login(username,password)
+    server.sendmail(fromaddr, toaddr, messagetosend)
+    server.quit()
+    return

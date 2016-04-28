@@ -27,12 +27,6 @@
 	});
 </script>
 <script type="text/javascript">
-// var nodelist = $.getElementsByClassName("rem")
-	// var x = document.getElementById("wlist").querySelectorAll(".rem");
-	// for (var i = 0; i < x.length; i++) {
-	// 	alert("" + x[i].src);
-	// }
-	// alert(x);
 	$("#del").click(function(event) {
 		// var x = document.getElementById("wlist").querySelectorAll(".rem");
 		var remove = event.target.parentNode.previousSibling.previousSibling.previousSibling.previousSibling.firstChild.src;
@@ -49,10 +43,8 @@
 		},
 		function(data, status) {
 			if (status == "success") {
-				alert(data);
-				// alert()
+				location.assign('/api/user/{{f}}/wishlist');
 			}
-			alert(status);
 		});
 	});
 </script>

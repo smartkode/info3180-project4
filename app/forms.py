@@ -58,6 +58,13 @@ class WishListForm(Form):
 class UrlForm(Form):
     url = URLField('URL', validators=[URL()])
     submit = SubmitField('Select Thumbnail')
+
+class SendEmailForm(Form):
+    name = TextField('Name', validators=[Required()])
+    email = TextField('Email', validators=[Required(), Email()])
+    subject = TextField('Subject', validators=[Required()])
+    message = TextAreaField('Message', validators=[Required()])
+    send = SubmitField('Send')
 # class EditForm(Form):
 # 	title = TextField('Title', validators=[Required()])
 # 	description = TextAreaField('Description', validators=[Required()])
