@@ -29,7 +29,8 @@ BeautifulSoup4
 requests
 six
 wsgiref
-
+PyJWT
+flask-cors
 # ----------------------
 # Testing
 # ----------------------

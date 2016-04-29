@@ -7,10 +7,11 @@ This file creates your application.
 """
 
 from app import app
-from flask import render_template, request, redirect, url_for, jsonify, g, session, flash
+from flask import render_template, request, redirect, url_for, jsonify, g, session, flash, _request_ctx_stack
+from werkzeug.local import LocalProxy
 from app import db
 
-from datetime import datetime
+import datetime
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.models import Users, Wish, WishList
@@ -28,7 +29,14 @@ import urlparse
 import urllib2
 import sys
 
-import smtplib
+import smtplib, base64, jwt
+
+from werkzeug.local import LocalProxy
+from flask.ext.cors import cross_origin
+from functools import wraps
+
+
+secret = app.config["SECRET_KEY"]
 ###
 # Routing for your application.
 ###
@@ -74,7 +82,7 @@ def register():
     return render_template(
         'signup.html',
         title='User Signup',
-        year=datetime.now().year,
+        year=datetime.datetime.now().year,
         form=form,
         user=g.user
     )
@@ -108,11 +116,136 @@ def login():
     return render_template(
         'login.html',
         title='User Login',
-        year=datetime.now().year,
+        year=datetime.datetime.now().year,
         form=form,
         user=g.user
     )
+
+
+
+
+
+
+
+
+
+
+
+
+def create_token(user):
+    payload = {
+        'sub': user.id,
+        'iat': datetime.utcnow(),
+        'exp': datetime.utcnow() + timedelta(days=1)
+    }
+    token = jwt.encode(payload, secret, algorithm='HS256')
+    return token.decode('unicode_escape')
+
+def parse_token(req):
+    token = req.headers.get('Authorization').split()[1]
+    return jwt.decode(token, SECRET_KEY, algorithms='HS256')
+
+@app.route('/api/login', methods=['GET','POST'])
+def login_2():
+    if request.method == 'POST':
+        try:
+            data = request.get_json(force=True)
+            print "works here"
+            print "data: "+data
+            return "done"
+        except:
+            try:
+                email= request.form['email']
+                print email
+            except Exception as e:
+                print e
+                return "error"
         
+        # return "{}".format(data)
+        # email = data['email']
+        # password = data['password']
+        # user = Users.query.filter_by(email=email).first()
+        # if user == None:
+        #     response = make_response(jsonify({"message" : "invalid username/password"}))
+        #     response.status_code = 401
+        #     return response
+        # if check_password_hash(user.password, password):
+        #     token = create_token(user)
+        #     return {"token" : token}
+        # else:
+        #     response = make_response(jsonify({"message" : "invalid username/password"}))
+        #     response.status_code = 401
+        #     return response
+    return render_template('jwt.html')
+
+# def login_required(f):
+#     @wraps(f)
+#     def decorated_function(*args, **kwargs):
+#         if not request.headers.get('Authorization'):
+#             response = jsonify(message='Missing authorization header')
+#             response.status_code = 401
+#             return response
+
+#         try:
+#             payload = parse_token(request)
+#         except DecodeError:
+#             response = jsonify(message='Token is invalid')
+#             response.status_code = 401
+#             return response
+#         except ExpiredSignature:
+#             response = jsonify(message='Token has expired')
+#             response.status_code = 401
+#             return response
+
+#         g.user_id = payload['sub']
+
+#         return f(*args, **kwargs)
+
+#     return decorated_function
+
+# def authenticate(error):
+#   resp = jsonify(error)
+
+#   resp.status_code = 401
+
+#   return resp
+
+
+# def requires_auth(f):
+#   @wraps(f)
+#   def decorated(*args, **kwargs):
+#     auth = request.headers.get('Authorization', None)
+#     if not auth:
+#       return authenticate({'code': 'authorization_header_missing', 'description': 'Authorization header is expected'})
+
+#     parts = auth.split()
+
+#     if parts[0].lower() != 'bearer':
+#       return {'code': 'invalid_header', 'description': 'Authorization header must start with Bearer'}
+#     elif len(parts) == 1:
+#       return {'code': 'invalid_header', 'description': 'Token not found'}
+#     elif len(parts) > 2:
+#       return {'code': 'invalid_header', 'description': 'Authorization header must be Bearer + \s + token'}
+
+#     token = parts[1]
+#     try:
+#          payload = jwt.decode(token, secret)
+  
+#     except jwt.ExpiredSignature:
+#         return authenticate({'code': 'token_expired', 'description': 'token is expired'})
+#     except jwt.DecodeError:
+#         return authenticate({'code': 'token_invalid_signature', 'description': 'token signature is invalid'})
+    
+#     _request_ctx_stack.top.current_user = user = payload
+#     return f(*args, **kwargs)
+
+#   return decorated
+
+
+
+
+
+
 
 #---Display home page
 @app.route('/')
@@ -122,7 +255,7 @@ def home():
     return render_template(
         'home.html',
         title='Home',
-        year=datetime.now().year,
+        year=datetime.datetime.now().year,
         user=g.user
     )
 
@@ -165,7 +298,7 @@ def process():
     return render_template(
         'url.html',
         title='Process',
-        year=datetime.now().year
+        year=datetime.datetime.now().year
     )
 
 def process_(url):
@@ -242,7 +375,7 @@ def wishlist(id):
         return jsonify({'error':'1', 'data':'', 'message':'no such wishlist exists'})
     
     form = WishForm()
-    
+    e_form = SendEmailForm()
     if request.method == 'POST' and 'User-Agent' in request.headers:
         if len(request.form) == 1:
             # print "hello world  "
@@ -262,11 +395,77 @@ def wishlist(id):
             return render_template(
                     'wishlist.html',
                     title='Wishlist',
-                    year=datetime.now().year,
+                    year=datetime.datetime.now().year,
                     f=f,
                     form=form,
                     user=g.user
                 )
+
+        if len(request.form) == 3:
+            print "2"
+            toname = request.form['name']
+            addr = request.form['email']
+            toaddr = addr.replace(" ","").split(",")
+            fromname = g.user.name
+            fromaddr = g.user.email
+            subject = g.user.name + "'s Wishlist"
+            msg = request.url
+            message = """From: {} <{}>
+            To: {} <{}>
+            Subject: {}
+
+            {}
+            """
+            if len(toaddr)>1:
+                for a in toaddr:
+                    
+                    messagetosend = message.format(
+                                     fromname,
+                                     fromaddr,
+                                     toname,
+                                     a,
+                                     subject,
+                                     msg)
+                    username = 'cmclaren89@gmail.com'
+                    password = 'uwdaqbgqxdmhbdzo'
+                    server = smtplib.SMTP('smtp.gmail.com:587')
+                    server.starttls()
+                    server.login(username,password)
+                    server.sendmail(fromaddr, toaddr, messagetosend)
+            # fromname = g.user.name
+            # fromaddr = g.user.email
+            # subject = g.user.name + "'s Wishlist"
+            # msg = request.url
+            # message = """From: {} <{}>
+            # To: {} <{}>
+            # Subject: {}
+
+            # {}
+            # """
+            # messagetosend = message.format(
+            #                  fromname,
+            #                  fromaddr,
+            #                  toname,
+            #                  toaddr,
+            #                  subject,
+            #                  msg)
+            # username = 'cmclaren89@gmail.com'
+            # password = 'uwdaqbgqxdmhbdzo'
+            # server = smtplib.SMTP('smtp.gmail.com:587')
+            # server.starttls()
+            # server.login(username,password)
+            # server.sendmail(fromaddr, toaddr, messagetosend)
+            return render_template(
+                'wishlist.html',
+                title='Wishlist',
+                year=datetime.datetime.now().year,
+                f=f,
+                wishlist=wishlist,
+                form=form,
+                e_form = e_form,
+                user=g.user
+            )
+
         if form.validate_on_submit():
             title = request.form['title']
             descr = request.form['description']
@@ -281,25 +480,53 @@ def wishlist(id):
                 return render_template(
                     'wishlist.html',
                     title='Wishlist',
-                    year=datetime.now().year,
+                    year=datetime.datetime.now().year,
                     f=f,
                     form=form,
                     wishlist=wishlist_,
+                    e_form = e_form,
                     user=g.user
                 )
-    e_form = SendEmailForm()
+    
 
     return render_template(
         'wishlist.html',
         title='Wishlist',
-        year=datetime.now().year,
+        year=datetime.datetime.now().year,
         f=f,
         wishlist=wishlist,
         form=form,
         e_form = e_form,
         user=g.user
     )
+def sendmail():
+    fromaddr = request.form['email']
+    toaddr  = 'cmclaren89@gmail.com'
+    message = """From: {} <{}>
+    To: {} <{}>
+    Subject: {}
 
+    {}
+    """
+    msg = request.form['message']
+    fromname = request.form['name']
+    toname = "Craig McLaren"
+    subject = request.form['subject']
+    messagetosend = message.format(
+                             fromname,
+                             fromaddr,
+                             toname,
+                             toaddr,
+                             subject,
+                             msg)
+    username = 'cmclaren89@gmail.com'
+    password = 'uwdaqbgqxdmhbdzo'
+    server = smtplib.SMTP('smtp.gmail.com:587')
+    server.starttls()
+    server.login(username,password)
+    server.sendmail(fromaddr, toaddr, messagetosend)
+    server.quit()
+    return
 
 @app.route('/logout')
 def logout():
@@ -312,7 +539,7 @@ def about():
     return render_template(
         'about.html',
         title='About',
-        year=datetime.now().year,
+        year=datetime.datetime.now().year,
         message='Your application description page.',
         user=g.user
     )
@@ -323,6 +550,8 @@ def send_text_file(file_name):
     """Send your static text file."""
     file_dot_text = file_name + '.txt'
     return app.send_static_file(file_dot_text)
+
+# @app.before_request
 
 @app.after_request
 def add_header(response):
@@ -355,31 +584,4 @@ def contact():
         sendmail()
     return render_template('contact.html', form=form)
 
-def sendmail():
-    fromaddr = request.form['email']
-    toaddr  = 'cmclaren89@gmail.com'
-    message = """From: {} <{}>
-    To: {} <{}>
-    Subject: {}
 
-    {}
-    """
-    msg = request.form['message']
-    fromname = request.form['name']
-    toname = "Craig McLaren"
-    subject = request.form['subject']
-    messagetosend = message.format(
-                             fromname,
-                             fromaddr,
-                             toname,
-                             toaddr,
-                             subject,
-                             msg)
-    username = 'cmclaren89@gmail.com'
-    password = 'uwdaqbgqxdmhbdzo'
-    server = smtplib.SMTP('smtp.gmail.com:587')
-    server.starttls()
-    server.login(username,password)
-    server.sendmail(fromaddr, toaddr, messagetosend)
-    server.quit()
-    return

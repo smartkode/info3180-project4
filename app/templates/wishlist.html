@@ -49,8 +49,11 @@
 	});
 </script>
 <script type="text/javascript">
-	function share() {
-		document.getElementById("email").style.display = "block";
+	function show() {
+		document.getElementById("email_").style.display = "block";
+	}
+	function hide() {
+		document.getElementById("email_").style.display = "none";
 	}
 </script>
 
@@ -117,16 +120,30 @@
 		<div class="col-sm-12">
 			<h3>{{ user.name }}'s Wishlist</h3>
 
-			<h5 id="h5sha"><button id="edit" onclick="share()" type="button" class="btn btn-primary btn-xs">Share</button> with friends</h5> 
-			<div id="email">
+			<h5 id="h5sha"><button id="edit" onclick="show()" type="button" class="btn btn-primary btn-xs">Share</button> with friends</h5> 
+			
+			<div id="email_">
 				<div class='col-sm-12'>
 					<form class='form-horizontal' role='form' method='POST' action='' enctype='multipart/form-data'>
 						<div class='form-group'>
-							<div class='col-sm-6'>
+							<div class='col-sm-8'>
 								{% for message in e_form.name.errors %}
 									<div class='field-validation-error'> {{ message }} </div>
 								{% endfor %}
 								{{ e_form.name(class_="form-control",placeholder="Name") }}
+							</div>
+						</div>
+						<div class='form-group'>
+							<div class='col-sm-8'>
+								{% for message in e_form.email.errors %}
+									<div class='field-validation-error'> {{ message }} </div>
+								{% endfor %}
+								{{ e_form.email(class_="form-control",placeholder="Email") }}
+							</div>
+						</div>
+						<div class='form-group'>
+							<div class='col-sm-3'>
+								{{ e_form.send(class_="form-control",onclick="hide()") }}
 							</div>
 						</div>
 					</form>
