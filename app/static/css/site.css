@@ -48,6 +48,10 @@ input[type="checkbox"].input-validation-error {
 #h5sha {
     display: inline-block;
 }
- #email_ {
-    display: none;
- }
+#email_ {
+display: none;
+}
+
+#g{
+    display: inline-block;
+}

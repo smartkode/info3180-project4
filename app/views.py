@@ -90,29 +90,62 @@ def register():
 #---Authenticate and login user
 @app.route('/api/user/login', methods=['GET','POST'])
 def login():
-    if request.method == 'POST' and 'User-Agent' not in request.headers:
-        email = request.form['email']
-        password = request.form['password']
-        if email and password:
-            user = Users.query.filter_by(email=email).first()
-            if user and user.verify_password(password):
-                g.user = user
-                token = user.generate_auth_token(600)
-                return jsonify({'error':'null', 'data':{'token': token.decode('ascii'), 'expires': 600, 'user':{'id': user.id, 'email': user.email, 'name': user.name}, 'message':'success'}})
-            return jsonify({'error': '1', 'data':{}, 'message':'Bad user name or password'})
-    if g.user is not None and g.user.is_authenticated:
-        return redirect(url_for('home'))
+    if request.method == 'POST':
+        
+        # try:
+        data = request.get_json()
+            # print "works here"
+            # print data
+            # return jsonify({"data": data})
+        # except:
+            # try:
+                # email= request.form['email']
+                # print jsonify(email)
+            # except Exception as e:
+                # print e
+                # return "error"
+        email = data['username']
+        password = data['password']
+        user = Users.query.filter_by(email=email).first()
+        if user == None:
+            response = make_response(jsonify({"message" : "invalid username/password1"}))
+            response.status_code = 401
+            return response
+        print "works here"
+        if user.verify_password(password):
+            token = create_token(user)
+            return jsonify({"token" : token})
+        else:
+            response = make_response(jsonify({"message" : "invalid username/password2"}))
+            response.status_code = 401
+            return response
+    # if request.method == 'POST' and 'User-Agent' not in request.headers:
+    #     email = request.form['email']
+    #     password = request.form['password']
+    #     if email and password:
+    #         user = Users.query.filter_by(email=email).first()
+    #         if user and user.verify_password(password):
+    #             g.user = user
+    #             token = user.generate_auth_token(600)
+    #             return jsonify({'error':'null', 'data':{'token': token.decode('ascii'), 'expires': 600, 'user':{'id': user.id, 'email': user.email, 'name': user.name}, 'message':'success'}})
+    #         return jsonify({'error': '1', 'data':{}, 'message':'Bad user name or password'})
+    #     else:
+    #         return "hello there"
+    # if g.user is not None and g.user.is_authenticated:
+    #     return redirect(url_for('home'))
     form = LoginForm()
-    if request.method == 'POST' and 'User-Agent' in request.headers:
-        if form.validate_on_submit():
-            uname = request.form['username']
-            pword = request.form['password']
-            user = Users.query.filter_by(email=uname).first()
-            if user is None:
-                return redirect(url_for('login'))
-            login_user(user)
-            return redirect(request.args.get("next") or url_for('wishlist',id=g.user.id))
-    
+    # if request.method == 'POST' and 'User-Agent' in request.headers:
+    #     print "posted some stuff here"
+    #     if form.validate_on_submit():
+    #         print "posted some stuff here"
+    #         uname = request.form['username']
+    #         pword = request.form['password']
+    #         user = Users.query.filter_by(email=uname).first()
+    #         if user is None:
+    #             return redirect(url_for('login'))
+    #         login_user(user)
+    #         return redirect(request.args.get("next") or url_for('wishlist',id=g.user.id))
+
     return render_template(
         'login.html',
         title='User Login',
@@ -135,8 +168,8 @@ def login():
 def create_token(user):
     payload = {
         'sub': user.id,
-        'iat': datetime.utcnow(),
-        'exp': datetime.utcnow() + timedelta(days=1)
+        'iat': datetime.datetime.utcnow(),
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1)
     }
     token = jwt.encode(payload, secret, algorithm='HS256')
     return token.decode('unicode_escape')
@@ -149,14 +182,14 @@ def parse_token(req):
 def login_2():
     if request.method == 'POST':
         try:
-            data = request.get_json(force=True)
+            data = request.get_json()
             print "works here"
-            print "data: "+data
-            return "done"
+            # print data
+            return jsonify({"data": data})
         except:
             try:
                 email= request.form['email']
-                print email
+                print jsonify(email)
             except Exception as e:
                 print e
                 return "error"

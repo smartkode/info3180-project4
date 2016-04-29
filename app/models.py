@@ -69,13 +69,15 @@ class WishList(db.Model):
     description = db.Column(db.String)
     url = db.Column(db.String)
     thumbnail = db.Column(db.String)
+    rank = db.Column(db.Integer)
 
-    def __init__(self, owner, title, description, url, thumbnail):
+    def __init__(self, owner, title, description, url, thumbnail,rank):
         self.owner = owner
         self.title = title
         self.description = description
         self.url = url
         self.thumbnail = thumbnail
+        self.rank = rank
 
     def __repr__(self):
         return "Wishlist {}".format(self.title)
