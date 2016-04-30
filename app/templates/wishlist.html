@@ -49,6 +49,13 @@
 	});
 </script>
 <script type="text/javascript">
+	$("#edit").click(function(){
+		$.post('/api/user/wishlist/rank',{rank: "plus"},function(data, status){
+			location.assign('/api/user/{{f}}/wishlist');
+		});
+	});
+</script>
+<script type="text/javascript">
 	function show() {
 		document.getElementById("email_").style.display = "block";
 	}
@@ -160,7 +167,7 @@
 							<p>{{ i.description }}</p>
 							<div class="btn-group">
 								<!-- <button id="edit" type="button" class="btn btn-primary btn-xs">Share</button> -->
-								<!-- <button id="edit" type="button" class="btn btn-primary btn-xs">Edit</button> -->
+								<button id="edit" type="button" class="btn btn-primary btn-xs">Edit</button>
 								<button id="del" type="button" class="btn btn-danger btn-xs">Delete</button>
 								
 							</div>
