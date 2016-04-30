@@ -14,23 +14,23 @@
     //             location.assign("/api/user/login");
     //         });
     // });
-    $("#loginform").submit(function(event){
-        event.preventDefault();
-        password = $("#password").val()
-        username = $("#username").val()
-        alert(username)
+    // $("#loginform").submit(function(event){
+    //     event.preventDefault();
+    //     password = $("#password").val()
+    //     username = $("#username").val()
+    //     alert(username)
 
-        $.ajax({
-            url: "/api/user/login",
-            async: true,
-            contentType: "application/json",
-            headers: {"Authorization":"Basic"},
-            method: "POST",
-            // dataType: "json",
-            data: JSON.stringify({'username': username, 'password': password})
-        });
+    //     $.ajax({
+    //         url: "/api/user/login",
+    //         async: true,
+    //         contentType: "application/json",
+    //         headers: {"Authorization":"Basic"},
+    //         method: "POST",
+    //         // dataType: "json",
+            // data: JSON.stringify({'username': username, 'password': password})
+        // });
         // alert($(username)
-    });
+    // });
         
     
 </script>

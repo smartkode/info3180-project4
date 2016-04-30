@@ -3,6 +3,8 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.login import LoginManager
 from flask.ext.openid import OpenID
 import os
+from flask_mail import Mail
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///postgres'
@@ -18,4 +20,18 @@ lm = LoginManager()
 lm.init_app(app)
 lm.login_view = 'login'
 
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+# MAIL_PORT : default 25
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_PORT']= 587
+app.config['MAIL_USERNAME'] = 'cmclaren89@gmail.com'
+app.config['MAIL_PASSWORD'] = 'uwdaqbgqxdmhbdzo'
+# app.config['MAIL_DEFAULT_SENDER'] = 'cmclaren89@gmail.com'
+app.config['MAIL_USE_SSL'] = False
+
+mail = Mail(app)
+
 from app import views, models
+
+
+

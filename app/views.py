@@ -18,10 +18,10 @@ from app.models import Users, Wish, WishList
 from app.forms import LoginForm, SignUpForm, WishForm, WishListForm, SendEmailForm#, UrlForm, EditForm
 
 from flask.ext.login import login_user, logout_user, current_user, login_required
-from app import app, db
-from app import lm
+from app import app, db 
+from app import lm, mail
 
-
+from flask_mail import Message
 from flask import Flask, abort, make_response
 import requests
 from bs4 import BeautifulSoup
@@ -90,61 +90,32 @@ def register():
 #---Authenticate and login user
 @app.route('/api/user/login', methods=['GET','POST'])
 def login():
-    if request.method == 'POST':
-        
-        # try:
-        data = request.get_json()
-            # print "works here"
-            # print data
-            # return jsonify({"data": data})
-        # except:
-            # try:
-                # email= request.form['email']
-                # print jsonify(email)
-            # except Exception as e:
-                # print e
-                # return "error"
-        email = data['username']
-        password = data['password']
-        user = Users.query.filter_by(email=email).first()
-        if user == None:
-            response = make_response(jsonify({"message" : "invalid username/password1"}))
-            response.status_code = 401
-            return response
-        print "works here"
-        if user.verify_password(password):
-            token = create_token(user)
-            return jsonify({"token" : token})
+    if request.method == 'POST' and 'User-Agent' not in request.headers:
+        email = request.form['email']
+        password = request.form['password']
+        if email and password:
+            user = Users.query.filter_by(email=email).first()
+            if user and user.verify_password(password):
+                g.user = user
+                token = user.generate_auth_token(600)
+                return jsonify({'error':'null', 'data':{'token': token.decode('ascii'), 'expires': 600, 'user':{'id': user.id, 'email': user.email, 'name': user.name}, 'message':'success'}})
+            return jsonify({'error': '1', 'data':{}, 'message':'Bad user name or password'})
         else:
-            response = make_response(jsonify({"message" : "invalid username/password2"}))
-            response.status_code = 401
-            return response
-    # if request.method == 'POST' and 'User-Agent' not in request.headers:
-    #     email = request.form['email']
-    #     password = request.form['password']
-    #     if email and password:
-    #         user = Users.query.filter_by(email=email).first()
-    #         if user and user.verify_password(password):
-    #             g.user = user
-    #             token = user.generate_auth_token(600)
-    #             return jsonify({'error':'null', 'data':{'token': token.decode('ascii'), 'expires': 600, 'user':{'id': user.id, 'email': user.email, 'name': user.name}, 'message':'success'}})
-    #         return jsonify({'error': '1', 'data':{}, 'message':'Bad user name or password'})
-    #     else:
-    #         return "hello there"
-    # if g.user is not None and g.user.is_authenticated:
-    #     return redirect(url_for('home'))
+            return "hello there"
+    if g.user is not None and g.user.is_authenticated:
+        return redirect(url_for('home'))
     form = LoginForm()
-    # if request.method == 'POST' and 'User-Agent' in request.headers:
-    #     print "posted some stuff here"
-    #     if form.validate_on_submit():
-    #         print "posted some stuff here"
-    #         uname = request.form['username']
-    #         pword = request.form['password']
-    #         user = Users.query.filter_by(email=uname).first()
-    #         if user is None:
-    #             return redirect(url_for('login'))
-    #         login_user(user)
-    #         return redirect(request.args.get("next") or url_for('wishlist',id=g.user.id))
+    if request.method == 'POST' and 'User-Agent' in request.headers:
+        print "posted some stuff here"
+        if form.validate_on_submit():
+            print "posted some stuff here"
+            uname = request.form['username']
+            pword = request.form['password']
+            user = Users.query.filter_by(email=uname).first()
+            if user is None:
+                return redirect(url_for('login'))
+            login_user(user)
+            return redirect(request.args.get("next") or url_for('wishlist',id=g.user.id))
 
     return render_template(
         'login.html',
@@ -163,36 +134,37 @@ def login():
 
 
 
+#-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\
+#---Testing code for jwt authentication
 
+# def create_token(user):
+#     payload = {
+#         'sub': user.id,
+#         'iat': datetime.datetime.utcnow(),
+#         'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1)
+#     }
+#     token = jwt.encode(payload, secret, algorithm='HS256')
+#     return token.decode('unicode_escape')
 
-def create_token(user):
-    payload = {
-        'sub': user.id,
-        'iat': datetime.datetime.utcnow(),
-        'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1)
-    }
-    token = jwt.encode(payload, secret, algorithm='HS256')
-    return token.decode('unicode_escape')
+# def parse_token(req):
+#     token = req.headers.get('Authorization').split()[1]
+#     return jwt.decode(token, SECRET_KEY, algorithms='HS256')
 
-def parse_token(req):
-    token = req.headers.get('Authorization').split()[1]
-    return jwt.decode(token, SECRET_KEY, algorithms='HS256')
-
-@app.route('/api/login', methods=['GET','POST'])
-def login_2():
-    if request.method == 'POST':
-        try:
-            data = request.get_json()
-            print "works here"
-            # print data
-            return jsonify({"data": data})
-        except:
-            try:
-                email= request.form['email']
-                print jsonify(email)
-            except Exception as e:
-                print e
-                return "error"
+# @app.route('/api/login', methods=['GET','POST'])
+# def login_2():
+#     if request.method == 'POST':
+#         try:
+#             data = request.get_json()
+#             print "works here"
+#             # print data
+#             return jsonify({"data": data})
+#         except:
+#             try:
+#                 email= request.form['email']
+#                 print jsonify(email)
+#             except Exception as e:
+#                 print e
+#                 return "error"
         
         # return "{}".format(data)
         # email = data['email']
@@ -209,7 +181,7 @@ def login_2():
         #     response = make_response(jsonify({"message" : "invalid username/password"}))
         #     response.status_code = 401
         #     return response
-    return render_template('jwt.html')
+    # return render_template('jwt.html')
 
 # def login_required(f):
 #     @wraps(f)
@@ -273,7 +245,7 @@ def login_2():
 #     return f(*args, **kwargs)
 
 #   return decorated
-
+#-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\
 
 
 
@@ -435,59 +407,17 @@ def wishlist(id):
                 )
 
         if len(request.form) == 3:
-            print "2"
-            toname = request.form['name']
+            # print "2"
             addr = request.form['email']
             toaddr = addr.replace(" ","").split(",")
             fromname = g.user.name
             fromaddr = g.user.email
             subject = g.user.name + "'s Wishlist"
-            msg = request.url
-            message = """From: {} <{}>
-            To: {} <{}>
-            Subject: {}
-
-            {}
-            """
-            if len(toaddr)>1:
-                for a in toaddr:
-                    
-                    messagetosend = message.format(
-                                     fromname,
-                                     fromaddr,
-                                     toname,
-                                     a,
-                                     subject,
-                                     msg)
-                    username = 'cmclaren89@gmail.com'
-                    password = 'uwdaqbgqxdmhbdzo'
-                    server = smtplib.SMTP('smtp.gmail.com:587')
-                    server.starttls()
-                    server.login(username,password)
-                    server.sendmail(fromaddr, toaddr, messagetosend)
-            # fromname = g.user.name
-            # fromaddr = g.user.email
-            # subject = g.user.name + "'s Wishlist"
-            # msg = request.url
-            # message = """From: {} <{}>
-            # To: {} <{}>
-            # Subject: {}
-
-            # {}
-            # """
-            # messagetosend = message.format(
-            #                  fromname,
-            #                  fromaddr,
-            #                  toname,
-            #                  toaddr,
-            #                  subject,
-            #                  msg)
-            # username = 'cmclaren89@gmail.com'
-            # password = 'uwdaqbgqxdmhbdzo'
-            # server = smtplib.SMTP('smtp.gmail.com:587')
-            # server.starttls()
-            # server.login(username,password)
-            # server.sendmail(fromaddr, toaddr, messagetosend)
+            msg = "Hey! Check out my Wishlist at " + request.url
+            
+            messagetosend = Message(subject=subject, sender=fromaddr, recipients=toaddr, body=msg)
+            mail.send(messagetosend)
+            
             return render_template(
                 'wishlist.html',
                 title='Wishlist',
@@ -521,7 +451,6 @@ def wishlist(id):
                     user=g.user
                 )
     
-
     return render_template(
         'wishlist.html',
         title='Wishlist',
@@ -532,34 +461,7 @@ def wishlist(id):
         e_form = e_form,
         user=g.user
     )
-def sendmail():
-    fromaddr = request.form['email']
-    toaddr  = 'cmclaren89@gmail.com'
-    message = """From: {} <{}>
-    To: {} <{}>
-    Subject: {}
 
-    {}
-    """
-    msg = request.form['message']
-    fromname = request.form['name']
-    toname = "Craig McLaren"
-    subject = request.form['subject']
-    messagetosend = message.format(
-                             fromname,
-                             fromaddr,
-                             toname,
-                             toaddr,
-                             subject,
-                             msg)
-    username = 'cmclaren89@gmail.com'
-    password = 'uwdaqbgqxdmhbdzo'
-    server = smtplib.SMTP('smtp.gmail.com:587')
-    server.starttls()
-    server.login(username,password)
-    server.sendmail(fromaddr, toaddr, messagetosend)
-    server.quit()
-    return
 
 @app.route('/logout')
 def logout():
@@ -608,13 +510,8 @@ def not_found(error):
 if __name__ == '__main__':
     app.run(debug=True,host="0.0.0.0",port=8888)
 
- #-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\
 
-@app.route('/contact', methods=['GET', 'POST'])
-def contact():
-    form = SendEmailForm()
-    if request.method =='POST':
-        sendmail()
-    return render_template('contact.html', form=form)
+#-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\-/-\
+
 
 
