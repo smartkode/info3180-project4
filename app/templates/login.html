@@ -14,6 +14,9 @@
     //             location.assign("/api/user/login");
     //         });
     // });
+
+    // Code below sends the required header of 'Basic <base64 hash of username and password>'
+
     // $("#loginform").submit(function(event){
     //     event.preventDefault();
     //     password = $("#password").val()
@@ -22,14 +25,19 @@
 
     //     $.ajax({
     //         url: "/api/user/login",
-    //         async: true,
-    //         contentType: "application/json",
-    //         headers: {"Authorization":"Basic"},
+    //         // async: true,
+    //         // contentType: "application/json",
+    //         headers: {"Authorization":"Basic " + btoa(username + ":" + password)},
     //         method: "POST",
+    //         cache: false
     //         // dataType: "json",
-            // data: JSON.stringify({'username': username, 'password': password})
-        // });
-        // alert($(username)
+    //         // beforeSend: function (xhr) {
+    //         //     xhr.setRequestHeader("Authorization",
+    //         //         "Basic " + btoa(username + ":" + password));
+    //         // }
+    //         // data: JSON.stringify({'username': username, 'password': password})
+    //     });
+    //     // alert($(username)
     // });
         
     

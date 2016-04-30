@@ -462,6 +462,12 @@ def wishlist(id):
         user=g.user
     )
 
+@app.route('/api/user/wishlist/rank', methods=['GET', 'POST'])
+def rank():
+    rank = request.form['rank']
+    if rank == "plus":
+        db.session.execute("UPDATE wish_list SET rank=(rank+1) WHERE owner=\'"+ g.user.id + "\'")
+        db.commit()
 
 @app.route('/logout')
 def logout():
